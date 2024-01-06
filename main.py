@@ -11,7 +11,7 @@ tetris_sound = pygame.mixer.Sound("sounds/tetris.mp3")
 newpiece_sound = pygame.mixer.Sound("sounds/piece.mp3")
 musicloop_sound = pygame.mixer.Sound("sounds/A-Type.mp3")
 gameover_sound = pygame.mixer.Sound("sounds/GameOver.mp3")
-
+sheep_sound = pygame.mixer.Sound("sounds/sheep.wav")
 
 # Constantes
 SCREEN_WIDTH, SCREEN_HEIGHT = 420, 758
@@ -291,6 +291,27 @@ def write_score_to_file(score):
     with open("score.txt", "w") as file:
         file.write(str(score))
 
+def draw_game_over_animation(surface, grid):
+    # Arrêter la musique
+    musicloop_sound.stop()
+    
+    gameover_sound.play()
+
+    # Remplir progressivement chaque ligne de blanc, case par case
+    for i in range(GRID_ROWS - 1, -1, -1):
+        for j in range(GRID_COLS):
+            grid[i][j] = WHITE
+            pygame.draw.rect(surface, WHITE, 
+                             (GRID_ORIGIN[0] + j * CELL_SIZE, 
+                              GRID_ORIGIN[1] + i * CELL_SIZE, 
+                              CELL_SIZE, CELL_SIZE))
+            pygame.display.update()
+            pygame.time.delay(5)  # Ajuster le délai pour contrôler la vitesse de l'animation
+
+    # Ajouter un délai final pour permettre de voir l'écran rempli avant de quitter
+    #pygame.time.delay(2000)
+
+
 def main():
     musicloop_sound.play(-1)
 
@@ -309,6 +330,8 @@ def main():
     fall_speed = adjust_fall_speed(level)
 
     key_down_pressed_time = None  # Pour suivre le temps depuis que la touche bas a été pressée
+
+    game_over = False  # Ajout d'une nouvelle variable pour suivre l'état de game over
 
     while run:
         grid = create_grid(locked_positions)
@@ -386,10 +409,16 @@ def main():
         draw_window(win, grid, score, next_piece)
         pygame.display.update()
 
-        if check_lost(locked_positions):
-            gameover_sound.play()
-            run = False
+         # Vérification de la condition de défaite
+        if check_lost(locked_positions) and not game_over:
+            game_over = True  # Marquer le jeu comme terminé
+            musicloop_sound.stop()  # Arrêter la musique
+            sheep_sound.play()  # Jouer le son de game over une seule fois
+            pygame.time.delay(1000)  # Court délai avant de démarrer l'animation
+            draw_game_over_animation(win, grid)
+            pygame.time.delay(4000)  # Attente après l'animation pour voir l'écran final
             print("Game Over! Final Score:", score, "Final Level:", level)
+            break  # Sortir de la boucle de jeu
 
     pygame.display.quit()
 

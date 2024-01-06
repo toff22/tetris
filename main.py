@@ -157,8 +157,11 @@ def check_lost(positions):
 
 def get_shape():
     shape_type = random.choice(list(TETRIMINOS.keys()))  # Sélectionner une clé au hasard
-    return Piece(5, 0, TETRIMINOS[shape_type], shape_type)  # Utiliser la clé pour récupérer la pièce
-
+    shape = TETRIMINOS[shape_type]
+    shape_width = max(len(row) for row in shape[0])  # Calculer la largeur de la pièce
+    start_x = GRID_COLS // 2 - shape_width // 2  # Position de départ au centre de la grille
+    return Piece(start_x, 0, shape, shape_type)  # Utiliser la clé pour récupérer la pièce
+    
 def draw_grid(surface, grid):
     sx = GRID_ORIGIN[0]
     sy = GRID_ORIGIN[1]
@@ -248,9 +251,11 @@ def calculate_score(num_lines, level):
  
     
 def adjust_fall_speed(level):
-    base_speed = 0.8  # Vitesse de base
-    speed_increase_per_level = 0.007  # Augmentation de la vitesse par niveau
-    fall_speed = max(base_speed - (level * speed_increase_per_level), 0.1)  # Vitesse minimale
+    base_speed = 0.8  # Vitesse de base pour le niveau 0
+    speed_increase_per_level = 0.1  # Augmentation de la vitesse par niveau
+
+    # Calculer la nouvelle vitesse en fonction du niveau
+    fall_speed = max(base_speed - (level * speed_increase_per_level), 0.1)  # Vitesse minimale de 0.1
     return fall_speed
 
 def main():

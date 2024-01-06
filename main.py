@@ -26,13 +26,13 @@ total_lines_cleared = 0
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 COLORS = {
-    'I': (0, 255, 255),  # Cyan pour la pièce I
-    'O': (255, 255, 0),  # Jaune pour la pièce O
-    'T': (128, 0, 128),  # Violet pour la pièce T
-    'S': (0, 255, 0),    # Vert pour la pièce S
-    'Z': (255, 0, 0),    # Rouge pour la pièce Z
-    'J': (0, 0, 255),    # Bleu pour la pièce J
-    'L': (255, 165, 0)   # Orange pour la pièce L
+    'I': (255, 255, 255),  # Blanc pur pour la pièce I
+    'O': (255, 235, 205),  # Blanched Almond pour la pièce O
+    'T': (245, 222, 179),  # Wheat pour la pièce T
+    'S': (222, 184, 135),  # Burlywood pour la pièce S
+    'Z': (210, 180, 140),  # Tan pour la pièce Z
+    'J': (188, 143, 143),  # Rosy Brown pour la pièce J
+    'L': (255, 218, 185)   # Pêche pour la pièce L
 }
 
 
@@ -174,12 +174,11 @@ def update_score_and_level(score, lines_cleared, level):
     score += calculate_score(lines_cleared, level)
     level_lines = 10  # Nombre de lignes à effacer pour monter d'un niveau
 
-    # Incrémente le niveau si le nombre total de lignes effacées atteint le seuil pour le niveau suivant
-    if total_lines_cleared >= (level + 1) * level_lines:
+    # Vérifier si le total des lignes effacées dépasse le seuil pour le niveau actuel
+    if total_lines_cleared >= level_lines:
         level += 1
-        total_lines_cleared = 0  # Réinitialisez le compteur pour le prochain niveau
+        total_lines_cleared -= level_lines  # Réduire le total des lignes pour le nouveau niveau
 
-    print("Score:", score, "Level:", level)  # Affiche le score et le niveau dans la console
     return score, level
 
 def clear_rows(grid, locked):
@@ -215,6 +214,9 @@ def clear_rows(grid, locked):
 
         for i in range(inc):
             grid.insert(0, [0 for _ in range(GRID_COLS)])
+
+             # Affiche le nombre total de lignes effacées dans la console
+            print("Total de lignes effacées:", total_lines_cleared)
 
     return grid, locked, inc
 
@@ -268,17 +270,12 @@ def main():
     level = 0
     fall_speed = adjust_fall_speed(level)
 
+    key_down_pressed_time = None  # Pour suivre le temps depuis que la touche bas a été pressée
+
     while run:
         grid = create_grid(locked_positions)
         fall_time += clock.get_rawtime()
         clock.tick()
-
-        if fall_time / 1000 > fall_speed:
-            fall_time = 0
-            current_piece.y += 1
-            if not (valid_space(current_piece, grid)) and current_piece.y > 0:
-                current_piece.y -= 1
-                change_piece = True
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -296,15 +293,38 @@ def main():
                         current_piece.x -= 1
 
                 elif event.key == pygame.K_DOWN:
+                    key_down_pressed_time = pygame.time.get_ticks()  # Marquer le temps du début de l'appui
+                    # Faire descendre la pièce d'une case immédiatement
                     current_piece.y += 1
                     if not valid_space(current_piece, grid):
                         current_piece.y -= 1
+                        change_piece = True
 
                 elif event.key == pygame.K_UP:
                     rotate_sound.play()
                     current_piece.rotation += 1
                     if not valid_space(current_piece, grid):
                         current_piece.rotation -= 1
+
+            if event.type == pygame.KEYUP:
+                if event.key == pygame.K_DOWN:
+                    key_down_pressed_time = None  # Réinitialiser le suivi du temps d'appui
+
+        if key_down_pressed_time:
+            # Si la touche bas est maintenue pendant plus de 150 millisecondes, faire tomber la pièce d'un coup
+            if pygame.time.get_ticks() - key_down_pressed_time > 200:
+                while valid_space(current_piece, grid):
+                    current_piece.y += 1
+                current_piece.y -= 1
+                change_piece = True
+                key_down_pressed_time = None
+
+        if fall_time / 1000 > fall_speed and not change_piece:
+            fall_time = 0
+            current_piece.y += 1
+            if not (valid_space(current_piece, grid)) and current_piece.y > 0:
+                current_piece.y -= 1
+                change_piece = True
 
         shape_pos = convert_shape_format(current_piece)
 
@@ -322,15 +342,15 @@ def main():
             change_piece = False
             grid, locked_positions, lines_cleared = clear_rows(grid, locked_positions)
             score, level = update_score_and_level(score, lines_cleared, level)
-            print("Score:", score, "Level:", level) 
+            print("Score:", score, "Level:", level)
             fall_speed = adjust_fall_speed(level)
 
-        draw_window(win, grid, score)  # Pass the score as an argument
+        draw_window(win, grid, score)
         pygame.display.update()
 
         if check_lost(locked_positions):
             gameover_sound.play()
-            run = False  # Uncomment to end the game after Game Over
+            run = False
             print("Game Over! Final Score:", score, "Final Level:", level)
 
     pygame.display.quit()

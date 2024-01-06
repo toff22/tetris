@@ -243,16 +243,7 @@ def calculate_score(num_lines, level):
     score_values = {0: 0, 1: 40, 2: 100, 3: 300, 4: 1200}
     return score_values[num_lines] * (level + 1)
 
-def update_score_and_level(score, lines_cleared, level):
-    score += calculate_score(lines_cleared, level)
-    level_lines = 10  # Nombre de lignes à effacer pour monter d'un niveau
-    lines_for_next_level = level * level_lines
-
-    # Incrémente le niveau si le nombre de lignes effacées atteint le seuil pour le niveau suivant
-    if lines_cleared >= lines_for_next_level:
-        level += 1
-
-    return score, level  
+ 
     
 def adjust_fall_speed(level):
     base_speed = 0.8  # Vitesse de base

@@ -19,6 +19,9 @@ GRID_ROWS, GRID_COLS = 18, 10
 CELL_SIZE = SCREEN_HEIGHT // GRID_ROWS
 GRID_ORIGIN = (0, 0)
 
+# Variable globale pour suivre le total des lignes effacées
+total_lines_cleared = 0
+
 # Couleurs
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
@@ -101,7 +104,6 @@ TETRIMINOS = {
 
 class Piece(object):
     def __init__(self, x, y, shape, shape_type):
-        print("shape: ", shape)
         self.x = x
         self.y = y
         self.shape = shape
@@ -118,8 +120,10 @@ class Piece(object):
 def create_grid(fixed_blocks):
     grid = [[0 for _ in range(GRID_COLS)] for _ in range(GRID_ROWS)]
     for (x, y), color in fixed_blocks.items():
-        grid[y][x] = color
+        if y < GRID_ROWS:
+            grid[y][x] = color
     return grid
+
 
 def valid_space(piece, grid):
     accepted_positions = [[(j, i) for j in range(GRID_COLS) if grid[i][j] == 0] for i in range(GRID_ROWS)]
@@ -164,30 +168,61 @@ def draw_grid(surface, grid):
         for j in range(len(grid[i])):
             pygame.draw.line(surface, WHITE, (sx + j * CELL_SIZE, sy), (sx + j * CELL_SIZE, sy + GRID_ROWS * CELL_SIZE))
 
+def update_score_and_level(score, lines_cleared, level):
+    global total_lines_cleared
+    total_lines_cleared += lines_cleared
+    score += calculate_score(lines_cleared, level)
+    level_lines = 10  # Nombre de lignes à effacer pour monter d'un niveau
+
+    # Incrémente le niveau si le nombre total de lignes effacées atteint le seuil pour le niveau suivant
+    if total_lines_cleared >= (level + 1) * level_lines:
+        level += 1
+        total_lines_cleared = 0  # Réinitialisez le compteur pour le prochain niveau
+
+    print("Score:", score, "Level:", level)  # Affiche le score et le niveau dans la console
+    return score, level
+
 def clear_rows(grid, locked):
     inc = 0
+    indices_to_remove = []
+
     for i in range(len(grid) - 1, -1, -1):
         row = grid[i]
         if 0 not in row:
             inc += 1
-            ind = i
+            indices_to_remove.append(i)
             for j in range(len(row)):
                 try:
                     del locked[(j, i)]
                 except:
                     continue
 
+    # Jouer les sons appropriés en fonction du nombre de lignes supprimées
     if inc > 0:
-        line_clear_sound.play()
-        for key in sorted(list(locked), key=lambda x: x[1])[::-1]:
-            x, y = key
-            if y < ind:
-                newKey = (x, y + inc)
-                locked[newKey] = locked.pop(key)
+        if inc == 4:
+            tetris_sound.play()
+        else:
+            line_clear_sound.play()
     else:
         newpiece_sound.play()
 
-def draw_window(surface, grid):
+    if inc > 0:
+        for key in sorted(list(locked), key=lambda x: x[1])[::-1]:
+            x, y = key
+            if y < indices_to_remove[-1]:
+                new_key = (x, y + inc)
+                locked[new_key] = locked.pop(key)
+
+        for i in range(inc):
+            grid.insert(0, [0 for _ in range(GRID_COLS)])
+
+    return grid, locked, inc
+
+
+
+
+
+def draw_window(surface, grid, score):
     surface.fill(BLACK)
 
     for i in range(len(grid)):
@@ -195,7 +230,35 @@ def draw_window(surface, grid):
             pygame.draw.rect(surface, grid[i][j], (GRID_ORIGIN[0] + j * CELL_SIZE, GRID_ORIGIN[1] + i * CELL_SIZE, CELL_SIZE, CELL_SIZE), 0)
 
     draw_grid(surface, grid)
+
+    # Afficher le score
+    font = pygame.font.SysFont('comicsans', 30)
+    label = font.render(f'Score: {score}', 1, (255,255,255))
+    surface.blit(label, (GRID_ORIGIN[0] + GRID_COLS * CELL_SIZE + 10, 20))
+
     pygame.display.update()
+
+    
+def calculate_score(num_lines, level):
+    score_values = {0: 0, 1: 40, 2: 100, 3: 300, 4: 1200}
+    return score_values[num_lines] * (level + 1)
+
+def update_score_and_level(score, lines_cleared, level):
+    score += calculate_score(lines_cleared, level)
+    level_lines = 10  # Nombre de lignes à effacer pour monter d'un niveau
+    lines_for_next_level = level * level_lines
+
+    # Incrémente le niveau si le nombre de lignes effacées atteint le seuil pour le niveau suivant
+    if lines_cleared >= lines_for_next_level:
+        level += 1
+
+    return score, level  
+    
+def adjust_fall_speed(level):
+    base_speed = 0.8  # Vitesse de base
+    speed_increase_per_level = 0.007  # Augmentation de la vitesse par niveau
+    fall_speed = max(base_speed - (level * speed_increase_per_level), 0.1)  # Vitesse minimale
+    return fall_speed
 
 def main():
     musicloop_sound.play(-1)
@@ -210,7 +273,10 @@ def main():
     clock = pygame.time.Clock()
     fall_time = 0
 
-    fall_speed = 0.27
+    score = 0
+    level = 0
+    fall_speed = adjust_fall_speed(level)
+
     while run:
         grid = create_grid(locked_positions)
         fall_time += clock.get_rawtime()
@@ -221,7 +287,6 @@ def main():
             current_piece.y += 1
             if not (valid_space(current_piece, grid)) and current_piece.y > 0:
                 current_piece.y -= 1
-                # fall_speed -= 0.01
                 change_piece = True
 
         for event in pygame.event.get():
@@ -264,18 +329,22 @@ def main():
             current_piece = next_piece
             next_piece = get_shape()
             change_piece = False
-            clear_rows(grid, locked_positions)
+            grid, locked_positions, lines_cleared = clear_rows(grid, locked_positions)
+            score, level = update_score_and_level(score, lines_cleared, level)
+            print("Score:", score, "Level:", level) 
+            fall_speed = adjust_fall_speed(level)
 
-        draw_window(win, grid)
+        draw_window(win, grid, score)  # Pass the score as an argument
         pygame.display.update()
 
         if check_lost(locked_positions):
             gameover_sound.play()
-            # run = False
+            run = False  # Uncomment to end the game after Game Over
+            print("Game Over! Final Score:", score, "Final Level:", level)
 
-    # pygame.display.quit()
+    pygame.display.quit()
 
-pygame.mixer.init(frequency=22050, size=-16, channels=2, buffer=512)
 win = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption('Tetris')
 main()
+

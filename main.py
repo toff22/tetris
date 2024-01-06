@@ -227,20 +227,29 @@ def clear_rows(grid, locked):
 
 
 
-def draw_window(surface, grid, score):
+def draw_window(surface, grid, score, next_piece):
     surface.fill(BLACK)
 
+    # Dessiner chaque cellule de la grille
     for i in range(len(grid)):
         for j in range(len(grid[i])):
-            pygame.draw.rect(surface, grid[i][j], (GRID_ORIGIN[0] + j * CELL_SIZE, GRID_ORIGIN[1] + i * CELL_SIZE, CELL_SIZE, CELL_SIZE), 0)
+            pygame.draw.rect(surface, grid[i][j], 
+                             (GRID_ORIGIN[0] + j * CELL_SIZE, 
+                              GRID_ORIGIN[1] + i * CELL_SIZE, 
+                              CELL_SIZE, CELL_SIZE), 0)
 
+    # Dessiner les lignes de la grille
     draw_grid(surface, grid)
 
     # Afficher le score
     font = pygame.font.SysFont('comicsans', 30)
-    label = font.render(f'Score: {score}', 1, (255,255,255))
+    label = font.render(f'Score: {score}', 1, WHITE)
     surface.blit(label, (GRID_ORIGIN[0] + GRID_COLS * CELL_SIZE + 10, 20))
 
+    # Dessiner la pièce suivante
+    draw_next_shape(surface, next_piece)
+
+    # Mettre à jour l'affichage
     pygame.display.update()
 
     
@@ -257,6 +266,28 @@ def adjust_fall_speed(level):
     # Calculer la nouvelle vitesse en fonction du niveau
     fall_speed = max(base_speed - (level * speed_increase_per_level), 0.1)  # Vitesse minimale de 0.1
     return fall_speed
+
+def draw_next_shape(surface, shape):
+    # Calculer la position centrale en largeur sur l'écran
+    center_x = SCREEN_WIDTH // 2
+    preview_x = center_x - (2 * CELL_SIZE)  # Centrer la pièce de 4 cellules de large
+    preview_y = 3 * CELL_SIZE  # Position Y pour la 3ème rangée
+
+    dark_grey = (70, 70, 70)  # Gris foncé pour la pièce suivante
+
+    formatted_shape = shape.image()
+    shape_width = max(len(row) for row in formatted_shape)
+    offset_x = (4 - shape_width) // 2  # Centrer la pièce horizontalement dans l'aperçu
+
+    for i, row in enumerate(formatted_shape):
+        for j, cell in enumerate(row):
+            if cell != 0:
+                pygame.draw.rect(surface, dark_grey, 
+                                 (preview_x + (j + offset_x) * CELL_SIZE, 
+                                  preview_y + i * CELL_SIZE, 
+                                  CELL_SIZE, CELL_SIZE))
+                                  
+
 
 def main():
     musicloop_sound.play(-1)
@@ -350,7 +381,7 @@ def main():
             print("Score:", score, "Level:", level)
             fall_speed = adjust_fall_speed(level)
 
-        draw_window(win, grid, score)
+        draw_window(win, grid, score, next_piece)  # Passer next_piece en argument
         pygame.display.update()
 
         if check_lost(locked_positions):

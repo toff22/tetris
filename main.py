@@ -286,8 +286,10 @@ def draw_next_shape(surface, shape):
                                  (preview_x + (j + offset_x) * CELL_SIZE, 
                                   preview_y + i * CELL_SIZE, 
                                   CELL_SIZE, CELL_SIZE))
-                                  
 
+def write_score_to_file(score):
+    with open("score.txt", "w") as file:
+        file.write(str(score))
 
 def main():
     musicloop_sound.play(-1)
@@ -330,7 +332,6 @@ def main():
 
                 elif event.key == pygame.K_DOWN:
                     key_down_pressed_time = pygame.time.get_ticks()  # Marquer le temps du début de l'appui
-                    # Faire descendre la pièce d'une case immédiatement
                     current_piece.y += 1
                     if not valid_space(current_piece, grid):
                         current_piece.y -= 1
@@ -347,7 +348,6 @@ def main():
                     key_down_pressed_time = None  # Réinitialiser le suivi du temps d'appui
 
         if key_down_pressed_time:
-            # Si la touche bas est maintenue pendant plus de 150 millisecondes, faire tomber la pièce d'un coup
             if pygame.time.get_ticks() - key_down_pressed_time > 200:
                 while valid_space(current_piece, grid):
                     current_piece.y += 1
@@ -378,10 +378,12 @@ def main():
             change_piece = False
             grid, locked_positions, lines_cleared = clear_rows(grid, locked_positions)
             score, level = update_score_and_level(score, lines_cleared, level)
+            with open('score.txt', 'w') as f:
+                f.write(f"{score},{level}")
             print("Score:", score, "Level:", level)
             fall_speed = adjust_fall_speed(level)
 
-        draw_window(win, grid, score, next_piece)  # Passer next_piece en argument
+        draw_window(win, grid, score, next_piece)
         pygame.display.update()
 
         if check_lost(locked_positions):
@@ -394,4 +396,5 @@ def main():
 win = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption('Tetris')
 main()
+
 

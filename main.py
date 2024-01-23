@@ -14,9 +14,16 @@ gameover_sound = pygame.mixer.Sound("sounds/GameOver.mp3")
 sheep_sound = pygame.mixer.Sound("sounds/sheep.wav")
 
 # Constantes
-SCREEN_WIDTH, SCREEN_HEIGHT = 420, 758
+# ON_RPI = True
+ON_RPI = False
+
 GRID_ROWS, GRID_COLS = 18, 10
-CELL_SIZE = SCREEN_HEIGHT // GRID_ROWS
+if ON_RPI:
+    SCREEN_WIDTH, SCREEN_HEIGHT = 480, 480
+    CELL_SIZE = 1516 // GRID_ROWS
+else:
+    SCREEN_WIDTH, SCREEN_HEIGHT = (420 + 240), 758
+    CELL_SIZE = 758 // GRID_ROWS
 GRID_ORIGIN = (0, 0)
 
 # Variable globale pour suivre le total des lignes effacées
@@ -233,18 +240,28 @@ def draw_window(surface, grid, score, next_piece):
     # Dessiner chaque cellule de la grille
     for i in range(len(grid)):
         for j in range(len(grid[i])):
-            pygame.draw.rect(surface, grid[i][j], 
-                             (GRID_ORIGIN[0] + j * CELL_SIZE, 
-                              GRID_ORIGIN[1] + i * CELL_SIZE, 
-                              CELL_SIZE, CELL_SIZE), 0)
+            if not ON_RPI:
+                pygame.draw.rect(surface, grid[i][j], 
+                                (GRID_ORIGIN[0] + j * CELL_SIZE, 
+                                GRID_ORIGIN[1] + i * CELL_SIZE, 
+                                CELL_SIZE, CELL_SIZE), 0)
+            else:
+                # Draw on LED
+                print("led")
 
-    # Dessiner les lignes de la grille
-    draw_grid(surface, grid)
+
+    if not ON_RPI:
+        # Dessiner les lignes de la grille
+        draw_grid(surface, grid)
 
     # Afficher le score
     font = pygame.font.SysFont('comicsans', 30)
     label = font.render(f'Score: {score}', 1, WHITE)
-    surface.blit(label, (GRID_ORIGIN[0] + GRID_COLS * CELL_SIZE + 10, 20))
+
+    if ON_RPI:
+        surface.blit(label, (10, 20))
+    else:
+        surface.blit(label, (GRID_ORIGIN[0] + GRID_COLS * CELL_SIZE + 10, 20))
 
     # Dessiner la pièce suivante
     draw_next_shape(surface, next_piece)
@@ -269,9 +286,12 @@ def adjust_fall_speed(level):
 
 def draw_next_shape(surface, shape):
     # Calculer la position centrale en largeur sur l'écran
-    center_x = SCREEN_WIDTH // 2
+    if ON_RPI:
+        center_x = 240
+    else:
+        center_x = SCREEN_WIDTH - 120
     preview_x = center_x - (2 * CELL_SIZE)  # Centrer la pièce de 4 cellules de large
-    preview_y = 3 * CELL_SIZE  # Position Y pour la 3ème rangée
+    preview_y = 2 * CELL_SIZE  # Position Y pour la 3ème rangée
 
     dark_grey = (70, 70, 70)  # Gris foncé pour la pièce suivante
 

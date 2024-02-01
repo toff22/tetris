@@ -192,21 +192,38 @@ def update_score_and_level(score, lines_cleared, level):
     return score, level
 
 def clear_rows(grid, locked):
-    inc = 0
+    inc = 0  # Nombre de lignes supprimées
     indices_to_remove = []
 
+    # Identifier les lignes complètes à supprimer
     for i in range(len(grid) - 1, -1, -1):
         row = grid[i]
         if 0 not in row:
             inc += 1
             indices_to_remove.append(i)
+            # Supprimer les positions verrouillées dans la ligne complète
             for j in range(len(row)):
                 try:
                     del locked[(j, i)]
                 except:
                     continue
 
-    # Jouer les sons appropriés en fonction du nombre de lignes supprimées
+    # Déplacer les lignes supérieures vers le bas
+    if inc > 0:
+        for i in range(len(grid) - 1, -1, -1):
+            if i in indices_to_remove:
+                continue
+
+            for j in range(len(grid[i])):
+                if (j, i) in locked:
+                    move_down = sum(1 for x in indices_to_remove if x > i)
+                    new_key = (j, i + move_down)
+                    locked[new_key] = locked.pop((j, i))
+
+        # Recréer la grille avec les positions verrouillées mises à jour
+        grid = create_grid(locked)
+
+     # Jouer les sons appropriés en fonction du nombre de lignes supprimées
     if inc > 0:
         if inc == 4:
             tetris_sound.play()
@@ -214,19 +231,6 @@ def clear_rows(grid, locked):
             line_clear_sound.play()
     else:
         newpiece_sound.play()
-
-    if inc > 0:
-        for key in sorted(list(locked), key=lambda x: x[1])[::-1]:
-            x, y = key
-            if y < indices_to_remove[-1]:
-                new_key = (x, y + inc)
-                locked[new_key] = locked.pop(key)
-
-        for i in range(inc):
-            grid.insert(0, [0 for _ in range(GRID_COLS)])
-
-             # Affiche le nombre total de lignes effacées dans la console
-            print("Total de lignes effacées:", total_lines_cleared)
 
     return grid, locked, inc
 
@@ -382,9 +386,30 @@ def main():
 
                 elif event.key == pygame.K_UP:
                     rotate_sound.play()
-                    current_piece.rotation += 1
+                    original_position = (current_piece.x, current_piece.y)
+                    original_rotation = current_piece.rotation
+                    current_piece.rotation = (current_piece.rotation + 1) % len(current_piece.shape)
+
+                    # Ajustement pour la pièce "I" lors de la rotation
+                    if current_piece.shape_type == 'I':
+                        if current_piece.rotation % 2 == 0:  # Rotation horizontale
+                            current_piece.x -= 2
+                        else:  # Rotation verticale
+                            current_piece.x += 2
+
+                    # Vérifier si la pièce est toujours dans la grille après la rotation et l'ajustement
                     if not valid_space(current_piece, grid):
-                        current_piece.rotation -= 1
+                        # Tenter de déplacer la pièce pour qu'elle reste dans les limites de la grille
+                        for dx in [-1, 1, -2, 2]:  # Essayer de déplacer de deux cases dans chaque direction
+                            current_piece.x += dx
+                            if valid_space(current_piece, grid):
+                                break
+                            current_piece.x -= dx
+
+                    # Si la pièce ne peut toujours pas être placée, annuler la rotation et l'ajustement
+                    if not valid_space(current_piece, grid):
+                        current_piece.x, current_piece.y = original_position
+                        current_piece.rotation = original_rotation
 
             if event.type == pygame.KEYUP:
                 if event.key == pygame.K_DOWN:

@@ -2,6 +2,7 @@ import pygame
 import random
 import numpy as np
 
+
 # Initialisation de Pygame
 pygame.init()
 
@@ -42,6 +43,25 @@ COLORS = {
     'L': (255, 218, 185)   # Pêche pour la pièce L
 }
 
+# Import des bibliothèques nécessaires pour Raspberry Pi si ON_RPI est True
+if ON_RPI:
+    import board
+    import neopixel
+    PIXEL_PIN = board.D18  # GPIO pin connecté aux LEDs
+    NUM_PIXELS = GRID_ROWS * GRID_COLS  # Nombre total de LEDs
+    pixels = neopixel.NeoPixel(PIXEL_PIN, NUM_PIXELS, brightness=0.5, auto_write=False)
+
+# Fonction pour dessiner un pixel sur Pygame ou sur la matrice LED
+def draw_pixel(x, y, color):
+    if ON_RPI:
+        # Calcul de l'index du pixel pour la matrice LED
+        index = y * GRID_COLS + x
+        if index < NUM_PIXELS:
+            pixels[index] = color
+            pixels.show()
+    else:
+        pygame_color = pygame.Color(*color)
+        pygame.draw.rect(win, pygame_color, (x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE))
 
 # Pièces de Tetris
 TETRIMINOS = {
@@ -264,6 +284,10 @@ def draw_window(surface, grid, score, next_piece):
 
     if ON_RPI:
         surface.blit(label, (10, 20))
+        PIXEL_PIN = board.D18  # La broche connectée aux NeoPixels
+        NUM_PIXELS = GRID_ROWS * GRID_COLS  # Assurez-vous que cela correspond à votre configuration
+        pixels = neopixel.NeoPixel(PIXEL_PIN, NUM_PIXELS, brightness=0.2, auto_write=False, pixel_order=neopixel.GRB)
+
     else:
         surface.blit(label, (GRID_ORIGIN[0] + GRID_COLS * CELL_SIZE + 10, 20))
 

@@ -1,2 +1,7 @@
 pygame
 numpy
+board
+rpi_ws281x 
+adafruit-circuitpython-neopixel
+luma.led_matrix
+luma.core

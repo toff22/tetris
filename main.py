@@ -1,7 +1,7 @@
+import os
 import pygame
 import random
 import numpy as np
-
 
 # Initialisation de Pygame
 pygame.init()
@@ -15,8 +15,8 @@ gameover_sound = pygame.mixer.Sound("sounds/GameOver.mp3")
 sheep_sound = pygame.mixer.Sound("sounds/sheep.wav")
 
 # Constantes
-# ON_RPI = True
-ON_RPI = False
+ON_RPI = True
+# ON_RPI = False
 
 GRID_ROWS, GRID_COLS = 18, 10
 if ON_RPI:
@@ -43,25 +43,6 @@ COLORS = {
     'L': (255, 218, 185)   # Pêche pour la pièce L
 }
 
-# Import des bibliothèques nécessaires pour Raspberry Pi si ON_RPI est True
-if ON_RPI:
-    import board
-    import neopixel
-    PIXEL_PIN = board.D18  # GPIO pin connecté aux LEDs
-    NUM_PIXELS = GRID_ROWS * GRID_COLS  # Nombre total de LEDs
-    pixels = neopixel.NeoPixel(PIXEL_PIN, NUM_PIXELS, brightness=0.5, auto_write=False)
-
-# Fonction pour dessiner un pixel sur Pygame ou sur la matrice LED
-def draw_pixel(x, y, color):
-    if ON_RPI:
-        # Calcul de l'index du pixel pour la matrice LED
-        index = y * GRID_COLS + x
-        if index < NUM_PIXELS:
-            pixels[index] = color
-            pixels.show()
-    else:
-        pygame_color = pygame.Color(*color)
-        pygame.draw.rect(win, pygame_color, (x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE))
 
 # Pièces de Tetris
 TETRIMINOS = {
@@ -127,6 +108,28 @@ TETRIMINOS = {
          [0, 7]]
     ]
 }
+
+if ON_RPI:
+    os.environ["SDL_VIDEODRIVER"] = "dummy" #dummy display for pygame joystick usage
+    import board
+    import neopixel
+    import subprocess
+    from luma.led_matrix.device import max7219
+    from luma.core.interface.serial import spi, noop
+    from luma.core.render import canvas
+    from luma.core.virtual import viewport
+    from luma.core.legacy import text, show_message
+    from luma.core.legacy.font import proportional, CP437_FONT, TINY_FONT, SINCLAIR_FONT, LCD_FONT
+
+    serial = spi(port=0, device=0, gpio=noop())
+    device = max7219(serial, cascaded=4, blocks_arranged_in_reverse_order=True)
+    pixel_pin = board.D18
+    # The number of NeoPixels
+    num_pixels = GRID_ROWS * GRID_COLS
+    ORDER = neopixel.GRB
+    pixels = neopixel.NeoPixel(pixel_pin, num_pixels, brightness=.6, auto_write=False,pixel_order=ORDER)
+    # pixels.fill((255, 255, 255))
+    # pixels.show()
 
 
 class Piece(object):
@@ -260,6 +263,8 @@ def clear_rows(grid, locked):
 
 def draw_window(surface, grid, score, next_piece):
     surface.fill(BLACK)
+    if ON_RPI:
+        pixels.fill((0, 0, 0))
 
     # Dessiner chaque cellule de la grille
     for i in range(len(grid)):
@@ -271,7 +276,12 @@ def draw_window(surface, grid, score, next_piece):
                                 CELL_SIZE, CELL_SIZE), 0)
             else:
                 # Draw on LED
-                print("led")
+                # print("led")
+                if (j>=0 and i>=0):
+                    if j%2==1:
+                        pixels[j*GRID_ROWS+i] = grid[i][j]
+                    else:
+                        pixels[j*GRID_ROWS+(GRID_ROWS-1-i)] = grid[i][j]
 
 
     if not ON_RPI:
@@ -284,10 +294,6 @@ def draw_window(surface, grid, score, next_piece):
 
     if ON_RPI:
         surface.blit(label, (10, 20))
-        PIXEL_PIN = board.D18  # La broche connectée aux NeoPixels
-        NUM_PIXELS = GRID_ROWS * GRID_COLS  # Assurez-vous que cela correspond à votre configuration
-        pixels = neopixel.NeoPixel(PIXEL_PIN, NUM_PIXELS, brightness=0.2, auto_write=False, pixel_order=neopixel.GRB)
-
     else:
         surface.blit(label, (GRID_ORIGIN[0] + GRID_COLS * CELL_SIZE + 10, 20))
 
@@ -296,7 +302,8 @@ def draw_window(surface, grid, score, next_piece):
 
     # Mettre à jour l'affichage
     pygame.display.update()
-
+    if ON_RPI:
+        pixels.show()
     
 def calculate_score(num_lines, level):
     score_values = {0: 0, 1: 40, 2: 100, 3: 300, 4: 1200}
@@ -380,13 +387,31 @@ def main():
     key_down_pressed_time = None  # Pour suivre le temps depuis que la touche bas a été pressée
 
     game_over = False  # Ajout d'une nouvelle variable pour suivre l'état de game over
+    joystick_detected=False
 
+    pygame.joystick.init()
     while run:
+        # if joystick_detected==False:
+        #     print("Waiting for controller...")
+        #     pygame.joystick.quit()
+        #     pygame.joystick.init()
+        #     try:
+        #         joystick = pygame.joystick.Joystick(0) # create a joystick instance
+        #         joystick.init() # init instance
+        #         print("Initialized joystick: {}".format(joystick.get_name()))
+        #         joystick_detected = True
+        #     except pygame.error:
+        #         print("no joystick found.")
+        #         joystick_detected = False
+
         grid = create_grid(locked_positions)
         fall_time += clock.get_rawtime()
         clock.tick()
 
         for event in pygame.event.get():
+            if event.type == pygame.JOYBUTTONDOWN:
+                print("Initialized joystick: {}".format(event.button))
+
             if event.type == pygame.QUIT:
                 run = False
 
@@ -494,5 +519,3 @@ def main():
 win = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption('Tetris')
 main()
-
-

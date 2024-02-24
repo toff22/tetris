@@ -3,8 +3,35 @@ import pygame
 import random
 import numpy as np
 
+
 # Initialisation de Pygame
 pygame.init()
+
+
+# variables globales
+frame_index = 0
+last_update = pygame.time.get_ticks()
+
+
+# Définit le mode vidéo en créant une fenêtre. Ajustez la taille selon vos besoins.
+screen = pygame.display.set_mode((800, 600))  
+
+def load_animation_images(relative_path):
+    # Construire le chemin absolu à partir du chemin relatif
+    base_path = os.path.dirname(__file__)  # Répertoire où se trouve le script actuel
+    image_folder = os.path.join(base_path, relative_path)
+    
+    images = []
+    for filename in os.listdir(image_folder):
+        if filename.endswith('.png'):
+            image_path = os.path.join(image_folder, filename)
+            images.append(pygame.image.load(image_path).convert_alpha())
+    return images 
+
+# Chemin relatif à partir du répertoire du script courant
+relative_path = 'images/animation/tetroj'
+
+
 
 line_clear_sound = pygame.mixer.Sound("sounds/line.mp3")
 rotate_sound = pygame.mixer.Sound("sounds/rotate.mp3")
@@ -15,8 +42,8 @@ gameover_sound = pygame.mixer.Sound("sounds/GameOver.mp3")
 sheep_sound = pygame.mixer.Sound("sounds/sheep.wav")
 
 # Constantes
-ON_RPI = True
-# ON_RPI = False
+# ON_RPI = True
+ON_RPI = False
 
 GRID_ROWS, GRID_COLS = 18, 10
 if ON_RPI:
@@ -317,7 +344,15 @@ def adjust_fall_speed(level):
 
     # Calculer la nouvelle vitesse en fonction du niveau
     fall_speed = max(base_speed - (level * speed_increase_per_level), 0.1)  # Vitesse minimale de 0.1
+    global fast_fall_speed  # Déclarer fast_fall_speed comme une variable globale pour la mettre à jour
+    fast_fall_speed = adjust_fast_fall_speed(fall_speed)  # Ajuster la vitesse de chute rapide
     return fall_speed
+
+def adjust_fast_fall_speed(normal_fall_speed):
+    # Faire la chute rapide 5 fois plus rapide que la chute normale
+    return normal_fall_speed * 0.1
+
+fast_fall_speed = adjust_fast_fall_speed(adjust_fall_speed(0))
 
 def draw_next_shape(surface, shape):
     # Calculer la position centrale en largeur sur l'écran
@@ -341,6 +376,19 @@ def draw_next_shape(surface, shape):
                                  (preview_x + (j + offset_x) * CELL_SIZE, 
                                   preview_y + i * CELL_SIZE, 
                                   CELL_SIZE, CELL_SIZE))
+
+
+def draw_next_piece_animation(surface, images, x, y, current_time):
+    global frame_index, last_update
+    # Vérifiez si suffisamment de temps s'est écoulé pour passer à la frame suivante.
+    if current_time - last_update > 30:  # 500 ms pour la durée de chaque frame
+        frame_index += 1
+        last_update = current_time
+        if frame_index >= len(images):  # Réinitialiser l'index pour boucler l'animation
+            frame_index = 0
+    # Dessinez l'image actuelle de l'animation à chaque itération, pas seulement lors de la mise à jour.
+    surface.blit(images[frame_index], (x, y))
+
 
 def write_score_to_file(score):
     with open("score.txt", "w") as file:
@@ -368,6 +416,7 @@ def draw_game_over_animation(surface, grid):
 
 
 def main():
+    animation_images = load_animation_images('images/animation/tetroj')
     musicloop_sound.play(-1)
 
     locked_positions = {}
@@ -379,7 +428,8 @@ def main():
     next_piece = get_shape()
     clock = pygame.time.Clock()
     fall_time = 0
-
+    frame_index = 0
+    last_update = pygame.time.get_ticks()
     score = 0
     level = 0
     fall_speed = adjust_fall_speed(level)
@@ -404,6 +454,11 @@ def main():
         #         print("no joystick found.")
         #         joystick_detected = False
 
+        current_time = pygame.time.get_ticks()
+        # Autre logique de jeu...
+        draw_next_piece_animation(screen, animation_images, 400, 100, current_time)
+        pygame.display.update()
+
         grid = create_grid(locked_positions)
         fall_time += clock.get_rawtime()
         clock.tick()
@@ -427,11 +482,9 @@ def main():
                         current_piece.x -= 1
 
                 elif event.key == pygame.K_DOWN:
-                    key_down_pressed_time = pygame.time.get_ticks()  # Marquer le temps du début de l'appui
-                    current_piece.y += 1
-                    if not valid_space(current_piece, grid):
-                        current_piece.y -= 1
-                        change_piece = True
+                    # À ce point, nous ne bougeons pas la pièce vers le bas immédiatement
+                    # mais ajustons la vitesse de chute à fast_fall_speed
+                    fall_speed = fast_fall_speed
 
                 elif event.key == pygame.K_UP:
                     rotate_sound.play()
@@ -462,7 +515,8 @@ def main():
 
             if event.type == pygame.KEYUP:
                 if event.key == pygame.K_DOWN:
-                    key_down_pressed_time = None  # Réinitialiser le suivi du temps d'appui
+                    # Réinitialiser la vitesse de chute à la valeur normale basée sur le niveau
+                    fall_speed = adjust_fall_speed(level)
 
         if key_down_pressed_time:
             if pygame.time.get_ticks() - key_down_pressed_time > 200:

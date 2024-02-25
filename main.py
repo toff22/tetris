@@ -14,6 +14,7 @@ frame_index = 0
 last_update = pygame.time.get_ticks()
 
 
+
 # Définit le mode vidéo en créant une fenêtre. Ajustez la taille selon vos besoins.
 screen = pygame.display.set_mode((800, 600))  
 
@@ -31,6 +32,28 @@ def load_animation_images(relative_path):
 
 # Chemin relatif à partir du répertoire du script courant
 relative_path = 'images/animation/tetroj'
+# Chemin relatif à partir du répertoire du script courant
+animation_images_I = 'images/animation/tetroi'  # Pour la pièce I
+animation_images_O = 'images/animation/tetroo'  # Pour la pièce O
+animation_images_T = 'images/animation/tetrot'  # Pour la pièce T
+animation_images_S = 'images/animation/tetros'  # Pour la pièce S
+animation_images_Z = 'images/animation/tetroz'  # Pour la pièce Z
+animation_images_J = 'images/animation/tetroj'  # Pour la pièce J
+animation_images_L = 'images/animation/tetrol'  # Pour la pièce L
+
+piece_animations = {
+    'I': 'images/animation/tetroi',
+    'O': 'images/animation/tetroo',
+    'T': 'images/animation/tetrot',
+    'S': 'images/animation/tetros',
+    'Z': 'images/animation/tetroz',
+    'J': 'images/animation/tetroj',
+    'L': 'images/animation/tetrol'
+}
+
+animations_dict = {}
+for piece, path in piece_animations.items():
+    animations_dict[piece] = load_animation_images(path)
 
 # Chemin vers votre fichier de police personnalisée
 font_path = 'font/gameboy.ttf'
@@ -446,9 +469,9 @@ def draw_window(surface, grid, score, next_piece):
                         pixels[j*GRID_ROWS+(GRID_ROWS-1-i)] = grid[i][j]
 
 
-    if not ON_RPI:
-        # Dessiner les lignes de la grille
-        draw_grid(surface, grid)
+    # if not ON_RPI:
+    #     # Dessiner les lignes de la grille
+    #     draw_grid(surface, grid)
 
     # Afficher le score
     font = pygame.font.SysFont('comicsans', 30)
@@ -513,15 +536,18 @@ def draw_next_shape(surface, shape):
                                   CELL_SIZE, CELL_SIZE))
 
 
-def draw_next_piece_animation(surface, images, x, y, current_time):
+def draw_next_piece_animation(surface, shape_type, x, y, current_time):
     global frame_index, last_update
-    # Vérifiez si suffisamment de temps s'est écoulé pour passer à la frame suivante.
-    if current_time - last_update > 30:  # 500 ms pour la durée de chaque frame
+    images = animations_dict[shape_type]  # Utilisez les images depuis le dictionnaire
+
+    # Mise à jour de l'index de frame et de la dernière mise à jour
+    if current_time - last_update > 30:  # Ajustez la durée selon vos besoins
         frame_index += 1
         last_update = current_time
-        if frame_index >= len(images):  # Réinitialiser l'index pour boucler l'animation
+        if frame_index >= len(images):
             frame_index = 0
-    # Dessinez l'image actuelle de l'animation à chaque itération, pas seulement lors de la mise à jour.
+    
+    # Affichage de l'image actuelle
     surface.blit(images[frame_index], (x, y))
 
 
@@ -575,7 +601,7 @@ def main():
                 highscore_screen(score)
 
 
-            animation_images = load_animation_images('images/animation/tetroj')
+            # animation_images = load_animation_images('images/animation/tetroj')
             #musicloop_sound.play(-1)
 
             locked_positions = {}
@@ -615,7 +641,7 @@ def main():
 
                 current_time = pygame.time.get_ticks()
                 # Autre logique de jeu...
-                draw_next_piece_animation(screen, animation_images, 400, 100, current_time)
+                draw_next_piece_animation(screen, next_piece.shape_type, 420, 200, current_time)
                 pygame.display.update()
 
                 grid = create_grid(locked_positions)
@@ -628,6 +654,7 @@ def main():
 
                     if event.type == pygame.QUIT:
                         run = False
+                        
 
                     if event.type == pygame.KEYDOWN:
                         if event.key == pygame.K_LEFT:
@@ -734,7 +761,8 @@ def main():
                     # pygame.time.delay(2000)  # Temps d'attente après l'animation de fin
                     highscore_screen(score)  # Appel à l'écran des scores
                     run = False  # Arrêter la boucle principale du jeu
-
+            
+            pygame.quit()
             # pygame.display.quit()
 
 win = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))

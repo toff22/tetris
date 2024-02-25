@@ -693,17 +693,17 @@ def main():
                 if check_lost(locked_positions) and not game_over:
                     game_over = True  # Marquer le jeu comme terminé
                     pygame.mixer.music.stop()  # Arrête la musique actuelle
-                    #musicloop_sound.stop()  # Arrêter la musique
                     sheep_sound.play()  # Jouer le son de game over une seule fois
                     pygame.time.delay(1000)  # Court délai avant de démarrer l'animation
                     draw_game_over_animation(win, grid)
-                    pygame.time.delay(4000)  # Attente après l'animation pour voir l'écran final
+                    # La ligne suivante assure qu'on ne passe dans cette section qu'une seule fois
+                    pygame.time.delay(2000)  # Attente après l'animation pour voir l'écran final
                     print("Game Over! Final Score:", score, "Final Level:", level)
-                    #highscore_screen(score) 
-                    # break  # Sortir de la boucle de jeu
+                    # highscore_screen(score)  # Afficher l'écran des scores ici peut-être
+                    # Pas besoin de répéter le dessin de l'animation ou de jouer le son à nouveau ici
                 
                 if game_over:
-                    draw_game_over_animation(screen, grid)  # Utilisez 'screen' et non 'win'
+                    # draw_game_over_animation(screen, grid)  # Utilisez 'screen' et non 'win'
                     # pygame.time.delay(2000)  # Temps d'attente après l'animation de fin
                     highscore_screen(score)  # Appel à l'écran des scores
                     run = False  # Arrêter la boucle principale du jeu

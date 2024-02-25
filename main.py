@@ -525,172 +525,190 @@ def draw_game_over_animation(surface, grid):
 
 def main():
 
-    # Appel à l'écran de sélection de musique
-    music_selection_screen()
-     # Initialisation et démarrage du jeu
-    game_over = False
-    score = 0  # Simuler un score; remplacez par votre propre logique
+    while True:  # Boucle principale pour permettre le redémarrage du jeu
+        music_selection_screen()  # Laisser l'utilisateur choisir la musique avant de démarrer
 
-    animation_images = load_animation_images('images/animation/tetroj')
-    #musicloop_sound.play(-1)
+        locked_positions = {}  # Initialiser locked_positions pour la nouvelle partie
+        score = 0  # Initialiser le score à 0 pour chaque nouvelle partie
+        level = 0  # Réinitialiser le niveau
+        game_over = False
 
-    locked_positions = {}
-    grid = create_grid(locked_positions)
+        current_piece = get_shape()
+        next_piece = get_shape()
+        clock = pygame.time.Clock()
+        fall_time = 0
 
-    change_piece = False
-    run = True
-    current_piece = get_shape()
-    next_piece = get_shape()
-    clock = pygame.time.Clock()
-    fall_time = 0
-    frame_index = 0
-    last_update = pygame.time.get_ticks()
-    score = 0
-    level = 0
-    fall_speed = adjust_fall_speed(level)
+        while not game_over:  # Boucle de jeu tant que le jeu n'est pas terminé
+            # Ici, vous pouvez utiliser locked_positions sans souci puisqu'elle a été initialisée
+            # Logique de jeu, gestion des événements, affichage, etc.
 
-    key_down_pressed_time = None  # Pour suivre le temps depuis que la touche bas a été pressée
+            if check_lost(locked_positions):
+                game_over = True
+                draw_game_over_animation(win, locked_positions)  # Assurez-vous de passer les arguments corrects
+                highscore_screen(score)
 
-    game_over = False  # Ajout d'une nouvelle variable pour suivre l'état de game over
-    joystick_detected=False
 
-    pygame.joystick.init()
-    while run:
-        # if joystick_detected==False:
-        #     print("Waiting for controller...")
-        #     pygame.joystick.quit()
-        #     pygame.joystick.init()
-        #     try:
-        #         joystick = pygame.joystick.Joystick(0) # create a joystick instance
-        #         joystick.init() # init instance
-        #         print("Initialized joystick: {}".format(joystick.get_name()))
-        #         joystick_detected = True
-        #     except pygame.error:
-        #         print("no joystick found.")
-        #         joystick_detected = False
+            animation_images = load_animation_images('images/animation/tetroj')
+            #musicloop_sound.play(-1)
 
-        current_time = pygame.time.get_ticks()
-        # Autre logique de jeu...
-        draw_next_piece_animation(screen, animation_images, 400, 100, current_time)
-        pygame.display.update()
+            locked_positions = {}
+            grid = create_grid(locked_positions)
 
-        grid = create_grid(locked_positions)
-        fall_time += clock.get_rawtime()
-        clock.tick()
-
-        for event in pygame.event.get():
-            if event.type == pygame.JOYBUTTONDOWN:
-                print("Initialized joystick: {}".format(event.button))
-
-            if event.type == pygame.QUIT:
-                run = False
-
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_LEFT:
-                    current_piece.x -= 1
-                    if not valid_space(current_piece, grid):
-                        current_piece.x += 1
-
-                elif event.key == pygame.K_RIGHT:
-                    current_piece.x += 1
-                    if not valid_space(current_piece, grid):
-                        current_piece.x -= 1
-
-                elif event.key == pygame.K_DOWN:
-                    # À ce point, nous ne bougeons pas la pièce vers le bas immédiatement
-                    # mais ajustons la vitesse de chute à fast_fall_speed
-                    fall_speed = fast_fall_speed
-
-                elif event.key == pygame.K_UP:
-                    rotate_sound.play()
-                    original_position = (current_piece.x, current_piece.y)
-                    original_rotation = current_piece.rotation
-                    current_piece.rotation = (current_piece.rotation + 1) % len(current_piece.shape)
-
-                    # Ajustement pour la pièce "I" lors de la rotation
-                    if current_piece.shape_type == 'I':
-                        if current_piece.rotation % 2 == 0:  # Rotation horizontale
-                            current_piece.x -= 2
-                        else:  # Rotation verticale
-                            current_piece.x += 2
-
-                    # Vérifier si la pièce est toujours dans la grille après la rotation et l'ajustement
-                    if not valid_space(current_piece, grid):
-                        # Tenter de déplacer la pièce pour qu'elle reste dans les limites de la grille
-                        for dx in [-1, 1, -2, 2]:  # Essayer de déplacer de deux cases dans chaque direction
-                            current_piece.x += dx
-                            if valid_space(current_piece, grid):
-                                break
-                            current_piece.x -= dx
-
-                    # Si la pièce ne peut toujours pas être placée, annuler la rotation et l'ajustement
-                    if not valid_space(current_piece, grid):
-                        current_piece.x, current_piece.y = original_position
-                        current_piece.rotation = original_rotation
-
-            if event.type == pygame.KEYUP:
-                if event.key == pygame.K_DOWN:
-                    # Réinitialiser la vitesse de chute à la valeur normale basée sur le niveau
-                    fall_speed = adjust_fall_speed(level)
-
-        if key_down_pressed_time:
-            if pygame.time.get_ticks() - key_down_pressed_time > 200:
-                while valid_space(current_piece, grid):
-                    current_piece.y += 1
-                current_piece.y -= 1
-                change_piece = True
-                key_down_pressed_time = None
-
-        if fall_time / 1000 > fall_speed and not change_piece:
-            fall_time = 0
-            current_piece.y += 1
-            if not (valid_space(current_piece, grid)) and current_piece.y > 0:
-                current_piece.y -= 1
-                change_piece = True
-
-        shape_pos = convert_shape_format(current_piece)
-
-        for i in range(len(shape_pos)):
-            x, y = shape_pos[i]
-            if y > -1:
-                grid[y][x] = current_piece.color
-
-        if change_piece:
-            for pos in shape_pos:
-                p = (pos[0], pos[1])
-                locked_positions[p] = current_piece.color
-            current_piece = next_piece
-            next_piece = get_shape()
             change_piece = False
-            grid, locked_positions, lines_cleared = clear_rows(grid, locked_positions)
-            score, level = update_score_and_level(score, lines_cleared, level)
-            with open('score.txt', 'w') as f:
-                f.write(f"{score},{level}")
-            print("Score:", score, "Level:", level)
+            run = True
+            current_piece = get_shape()
+            next_piece = get_shape()
+            clock = pygame.time.Clock()
+            fall_time = 0
+            frame_index = 0
+            last_update = pygame.time.get_ticks()
+            score = 0
+            level = 0
             fall_speed = adjust_fall_speed(level)
 
-        draw_window(win, grid, score, next_piece)
-        pygame.display.update()
+            key_down_pressed_time = None  # Pour suivre le temps depuis que la touche bas a été pressée
 
-         # Vérification de la condition de défaite
-        if check_lost(locked_positions) and not game_over:
-            game_over = True  # Marquer le jeu comme terminé
-            pygame.mixer.music.stop()  # Arrête la musique actuelle
-            #musicloop_sound.stop()  # Arrêter la musique
-            sheep_sound.play()  # Jouer le son de game over une seule fois
-            pygame.time.delay(1000)  # Court délai avant de démarrer l'animation
-            draw_game_over_animation(win, grid)
-            pygame.time.delay(4000)  # Attente après l'animation pour voir l'écran final
-            print("Game Over! Final Score:", score, "Final Level:", level)
-            #highscore_screen(score) 
-            # break  # Sortir de la boucle de jeu
-        
-        if game_over:
-            pygame.mixer.music.stop()  # Arrête la musique avant de la rejouer
-            # Affichez ici l'écran des highscores
-            highscore_screen(score)
+            game_over = False  # Ajout d'une nouvelle variable pour suivre l'état de game over
+            joystick_detected=False
 
-    pygame.display.quit()
+            pygame.joystick.init()
+            while run:
+                # if joystick_detected==False:
+                #     print("Waiting for controller...")
+                #     pygame.joystick.quit()
+                #     pygame.joystick.init()
+                #     try:
+                #         joystick = pygame.joystick.Joystick(0) # create a joystick instance
+                #         joystick.init() # init instance
+                #         print("Initialized joystick: {}".format(joystick.get_name()))
+                #         joystick_detected = True
+                #     except pygame.error:
+                #         print("no joystick found.")
+                #         joystick_detected = False
+
+                current_time = pygame.time.get_ticks()
+                # Autre logique de jeu...
+                draw_next_piece_animation(screen, animation_images, 400, 100, current_time)
+                pygame.display.update()
+
+                grid = create_grid(locked_positions)
+                fall_time += clock.get_rawtime()
+                clock.tick()
+
+                for event in pygame.event.get():
+                    if event.type == pygame.JOYBUTTONDOWN:
+                        print("Initialized joystick: {}".format(event.button))
+
+                    if event.type == pygame.QUIT:
+                        run = False
+
+                    if event.type == pygame.KEYDOWN:
+                        if event.key == pygame.K_LEFT:
+                            current_piece.x -= 1
+                            if not valid_space(current_piece, grid):
+                                current_piece.x += 1
+
+                        elif event.key == pygame.K_RIGHT:
+                            current_piece.x += 1
+                            if not valid_space(current_piece, grid):
+                                current_piece.x -= 1
+
+                        elif event.key == pygame.K_DOWN:
+                            # À ce point, nous ne bougeons pas la pièce vers le bas immédiatement
+                            # mais ajustons la vitesse de chute à fast_fall_speed
+                            fall_speed = fast_fall_speed
+
+                        elif event.key == pygame.K_UP:
+                            rotate_sound.play()
+                            original_position = (current_piece.x, current_piece.y)
+                            original_rotation = current_piece.rotation
+                            current_piece.rotation = (current_piece.rotation + 1) % len(current_piece.shape)
+
+                            # Ajustement pour la pièce "I" lors de la rotation
+                            if current_piece.shape_type == 'I':
+                                if current_piece.rotation % 2 == 0:  # Rotation horizontale
+                                    current_piece.x -= 2
+                                else:  # Rotation verticale
+                                    current_piece.x += 2
+
+                            # Vérifier si la pièce est toujours dans la grille après la rotation et l'ajustement
+                            if not valid_space(current_piece, grid):
+                                # Tenter de déplacer la pièce pour qu'elle reste dans les limites de la grille
+                                for dx in [-1, 1, -2, 2]:  # Essayer de déplacer de deux cases dans chaque direction
+                                    current_piece.x += dx
+                                    if valid_space(current_piece, grid):
+                                        break
+                                    current_piece.x -= dx
+
+                            # Si la pièce ne peut toujours pas être placée, annuler la rotation et l'ajustement
+                            if not valid_space(current_piece, grid):
+                                current_piece.x, current_piece.y = original_position
+                                current_piece.rotation = original_rotation
+
+                    if event.type == pygame.KEYUP:
+                        if event.key == pygame.K_DOWN:
+                            # Réinitialiser la vitesse de chute à la valeur normale basée sur le niveau
+                            fall_speed = adjust_fall_speed(level)
+
+                if key_down_pressed_time:
+                    if pygame.time.get_ticks() - key_down_pressed_time > 200:
+                        while valid_space(current_piece, grid):
+                            current_piece.y += 1
+                        current_piece.y -= 1
+                        change_piece = True
+                        key_down_pressed_time = None
+
+                if fall_time / 1000 > fall_speed and not change_piece:
+                    fall_time = 0
+                    current_piece.y += 1
+                    if not (valid_space(current_piece, grid)) and current_piece.y > 0:
+                        current_piece.y -= 1
+                        change_piece = True
+
+                shape_pos = convert_shape_format(current_piece)
+
+                for i in range(len(shape_pos)):
+                    x, y = shape_pos[i]
+                    if y > -1:
+                        grid[y][x] = current_piece.color
+
+                if change_piece:
+                    for pos in shape_pos:
+                        p = (pos[0], pos[1])
+                        locked_positions[p] = current_piece.color
+                    current_piece = next_piece
+                    next_piece = get_shape()
+                    change_piece = False
+                    grid, locked_positions, lines_cleared = clear_rows(grid, locked_positions)
+                    score, level = update_score_and_level(score, lines_cleared, level)
+                    with open('score.txt', 'w') as f:
+                        f.write(f"{score},{level}")
+                    print("Score:", score, "Level:", level)
+                    fall_speed = adjust_fall_speed(level)
+
+                draw_window(win, grid, score, next_piece)
+                pygame.display.update()
+
+                # Vérification de la condition de défaite
+                if check_lost(locked_positions) and not game_over:
+                    game_over = True  # Marquer le jeu comme terminé
+                    pygame.mixer.music.stop()  # Arrête la musique actuelle
+                    #musicloop_sound.stop()  # Arrêter la musique
+                    sheep_sound.play()  # Jouer le son de game over une seule fois
+                    pygame.time.delay(1000)  # Court délai avant de démarrer l'animation
+                    draw_game_over_animation(win, grid)
+                    pygame.time.delay(4000)  # Attente après l'animation pour voir l'écran final
+                    print("Game Over! Final Score:", score, "Final Level:", level)
+                    #highscore_screen(score) 
+                    # break  # Sortir de la boucle de jeu
+                
+                if game_over:
+                    draw_game_over_animation(screen, grid)  # Utilisez 'screen' et non 'win'
+                    # pygame.time.delay(2000)  # Temps d'attente après l'animation de fin
+                    highscore_screen(score)  # Appel à l'écran des scores
+                    run = False  # Arrêter la boucle principale du jeu
+
+            # pygame.display.quit()
 
 win = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption('Tetris')

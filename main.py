@@ -547,8 +547,10 @@ def draw_next_piece_animation(surface, shape_type, x, y, current_time):
         if frame_index >= len(images):
             frame_index = 0
     
-    # Affichage de l'image actuelle
-    surface.blit(images[frame_index], (x, y))
+    # Ajouter une vérification pour éviter l'erreur 'list index out of range'
+    if frame_index < len(images):  # S'assurer que l'index est dans la plage
+        # Affichage de l'image actuelle
+        surface.blit(images[frame_index], (x, y))
 
 
 def write_score_to_file(score):

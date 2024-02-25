@@ -2,6 +2,7 @@ import os
 import pygame
 import random
 import numpy as np
+import random
 
 
 # Initialisation de Pygame
@@ -31,7 +32,16 @@ def load_animation_images(relative_path):
 # Chemin relatif à partir du répertoire du script courant
 relative_path = 'images/animation/tetroj'
 
+def get_music_files(folder_path):
+    """Retourne une liste des chemins complets de tous les fichiers musicaux dans le dossier spécifié."""
+    music_files = []
+    for filename in os.listdir(folder_path):
+        if filename.endswith('.mp3'):  # Assurez-vous de filtrer par le bon type de fichier
+            music_files.append(os.path.join(folder_path, filename))
+    return music_files
 
+
+background_image = pygame.image.load('images/start_screen.png')
 
 line_clear_sound = pygame.mixer.Sound("sounds/line.mp3")
 rotate_sound = pygame.mixer.Sound("sounds/rotate.mp3")
@@ -70,6 +80,104 @@ COLORS = {
     'L': (255, 218, 185)   # Pêche pour la pièce L
 }
 
+def play_next_track(music_files):
+    """Charge et joue la prochaine piste musicale de manière aléatoire, sans bloquer le jeu."""
+    if music_files:  # Vérifie si la liste n'est pas vide
+        next_track = random.choice(music_files)  # Sélectionne une piste aléatoirement
+        pygame.mixer.music.load(next_track)
+        pygame.mixer.music.set_volume(0.6)  # Réglez le volume à 70%
+        pygame.mixer.music.play()
+
+# def play_playlist(music_files):
+#     """Commence la lecture de la première piste de la playlist et planifie les suivantes."""
+#     if not music_files:
+#         print("Aucune musique trouvée dans la playlist.")
+#         return
+#     pygame.mixer.music.load(music_files[0])
+#     pygame.mixer.music.play()
+#     for i in range(1, len(music_files)):
+#         pygame.mixer.music.queue(music_files[i])
+
+def setup_playlist(music_files):
+    """Configure la playlist pour jouer les pistes musicales en aléatoire."""
+    if not music_files:
+        print("Aucune musique trouvée dans la playlist.")
+        return
+    
+    play_next_track(music_files)  # Joue une première piste musicale aléatoirement
+    
+    # Définit l'action à entreprendre lorsque la musique actuelle se termine
+    def music_end_event():
+        play_next_track(music_files)  # Joue la prochaine piste musicale aléatoirement
+
+    # Associe l'événement de fin de musique à la fonction music_end_event
+    pygame.mixer.music.set_endevent(pygame.USEREVENT + 1)
+    pygame.event.custom_type()  # Génère un nouveau type d'événement unique
+    pygame.event.set_blocked(pygame.USEREVENT + 1)  # Bloque cet événement pour éviter sa propagation
+
+    # Ajoute un gestionnaire pour l'événement de fin de musique
+    for event in pygame.event.get():
+        if event.type == pygame.USEREVENT + 1:  # Vérifie si l'événement de fin de musique est détecté
+            music_end_event()
+
+def music_selection_screen():
+    running = True
+    music_options = ["A-Track (Officiel Tetris)", "B-Track (Playlist)"]
+    current_selection = 0
+    music_folder_path = 'sounds/megademo/'
+    playlist_files = get_music_files(music_folder_path)
+
+    while running:
+        screen.fill(BLACK)
+
+        # Dessiner l'image de fond
+        screen.blit(background_image, (0, 0))
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_UP:
+                    current_selection = (current_selection - 1) % len(music_options)
+                elif event.key == pygame.K_DOWN:
+                    current_selection = (current_selection + 1) % len(music_options)
+                elif event.key == pygame.K_RETURN:
+                    if current_selection == 0:  # A-Track sélectionné
+                        pygame.mixer.music.load("sounds/A-Type.mp3")
+                        pygame.mixer.music.play(-1)
+                    elif current_selection == 1:  # B-Track sélectionné
+                        setup_playlist(playlist_files)
+                    running = False
+
+        font = pygame.font.SysFont('Arial', 24)
+        for i, option in enumerate(music_options):
+            text = font.render(option, True, WHITE if i == current_selection else (100, 100, 100))
+            screen.blit(text, (100, 100 + i * 30))
+
+        pygame.display.flip()
+        pygame.time.Clock().tick(30)
+
+def highscore_screen(score):
+    running = True
+    while running:
+        screen.fill(BLACK)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:
+                    running = False
+
+        font = pygame.font.SysFont('Arial', 24)
+        text_score = font.render(f"Your Score: {score}", True, WHITE)
+        text_restart = font.render("Press Enter to Restart", True, WHITE)
+        screen.blit(text_score, (100, 100))
+        screen.blit(text_restart, (100, 140))
+
+        pygame.display.flip()
+        pygame.time.Clock().tick(30)       
 
 # Pièces de Tetris
 TETRIMINOS = {
@@ -416,8 +524,15 @@ def draw_game_over_animation(surface, grid):
 
 
 def main():
+
+    # Appel à l'écran de sélection de musique
+    music_selection_screen()
+     # Initialisation et démarrage du jeu
+    game_over = False
+    score = 0  # Simuler un score; remplacez par votre propre logique
+
     animation_images = load_animation_images('images/animation/tetroj')
-    musicloop_sound.play(-1)
+    #musicloop_sound.play(-1)
 
     locked_positions = {}
     grid = create_grid(locked_positions)
@@ -560,13 +675,20 @@ def main():
          # Vérification de la condition de défaite
         if check_lost(locked_positions) and not game_over:
             game_over = True  # Marquer le jeu comme terminé
-            musicloop_sound.stop()  # Arrêter la musique
+            pygame.mixer.music.stop()  # Arrête la musique actuelle
+            #musicloop_sound.stop()  # Arrêter la musique
             sheep_sound.play()  # Jouer le son de game over une seule fois
             pygame.time.delay(1000)  # Court délai avant de démarrer l'animation
             draw_game_over_animation(win, grid)
             pygame.time.delay(4000)  # Attente après l'animation pour voir l'écran final
             print("Game Over! Final Score:", score, "Final Level:", level)
-            break  # Sortir de la boucle de jeu
+            #highscore_screen(score) 
+            # break  # Sortir de la boucle de jeu
+        
+        if game_over:
+            pygame.mixer.music.stop()  # Arrête la musique avant de la rejouer
+            # Affichez ici l'écran des highscores
+            highscore_screen(score)
 
     pygame.display.quit()
 

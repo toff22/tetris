@@ -32,6 +32,16 @@ def load_animation_images(relative_path):
 # Chemin relatif à partir du répertoire du script courant
 relative_path = 'images/animation/tetroj'
 
+# Chemin vers votre fichier de police personnalisée
+font_path = 'font/gameboy.ttf'
+
+# Charger la police personnalisée à la taille désirée
+custom_font = pygame.font.Font(font_path, 24)
+
+#chargement des images
+background_image = pygame.image.load('images/start_screen.png')
+score_image = pygame.image.load('images/score.png')
+
 def get_music_files(folder_path):
     """Retourne une liste des chemins complets de tous les fichiers musicaux dans le dossier spécifié."""
     music_files = []
@@ -41,7 +51,7 @@ def get_music_files(folder_path):
     return music_files
 
 
-background_image = pygame.image.load('images/start_screen.png')
+
 
 line_clear_sound = pygame.mixer.Sound("sounds/line.mp3")
 rotate_sound = pygame.mixer.Sound("sounds/rotate.mp3")
@@ -122,16 +132,29 @@ def setup_playlist(music_files):
 
 def music_selection_screen():
     running = True
-    music_options = ["A-Track (Officiel Tetris)", "B-Track (Playlist)"]
+    music_options = ["Original", "Megademo"]
     current_selection = 0
     music_folder_path = 'sounds/megademo/'
     playlist_files = get_music_files(music_folder_path)
 
+     # Utiliser custom_font ici pour rendre le texte
+    font_path = 'font/gameboy.ttf'  # Remplacez par le chemin correct de votre police
+    custom_font = pygame.font.Font(font_path, 24)  # Charger la police personnalisée
+    
+
+
     while running:
+
+        # header_text = custom_font.render('Start with', True, (255, 255, 255))  # Blanc
+
         screen.fill(BLACK)
 
         # Dessiner l'image de fond
         screen.blit(background_image, (0, 0))
+
+        # Utiliser custom_font ici pour rendre le texte
+        header_text = custom_font.render('MUSIC TYPE', True, (255, 255, 255))  # Blanc
+        screen.blit(header_text, (132, 120))  # Modifier (100, 50) pour ajuster la position
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -150,10 +173,10 @@ def music_selection_screen():
                         setup_playlist(playlist_files)
                     running = False
 
-        font = pygame.font.SysFont('Arial', 24)
+        custom_font = pygame.font.Font(font_path, 24)
         for i, option in enumerate(music_options):
-            text = font.render(option, True, WHITE if i == current_selection else (100, 100, 100))
-            screen.blit(text, (100, 100 + i * 30))
+            text = custom_font.render(option, True, WHITE if i == current_selection else (100, 100, 100))
+            screen.blit(text, (150, 170 + i * 30))
 
         pygame.display.flip()
         pygame.time.Clock().tick(30)
@@ -162,6 +185,8 @@ def highscore_screen(score):
     running = True
     while running:
         screen.fill(BLACK)
+        # Dessiner l'image de fond
+        screen.blit(score_image, (0, 0))
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -170,11 +195,13 @@ def highscore_screen(score):
                 if event.key == pygame.K_RETURN:
                     running = False
 
-        font = pygame.font.SysFont('Arial', 24)
-        text_score = font.render(f"Your Score: {score}", True, WHITE)
-        text_restart = font.render("Press Enter to Restart", True, WHITE)
-        screen.blit(text_score, (100, 100))
-        screen.blit(text_restart, (100, 140))
+        custom_font = pygame.font.Font(font_path, 24)
+        text_score_label = custom_font.render("HIGHSCORE<", True, WHITE)
+        text_score = custom_font.render(f"{score}", True, BLACK)
+        text_restart = custom_font.render("A to Restart", True, WHITE)
+        screen.blit(text_score, (120, 226))
+        screen.blit(text_score_label, (120, 160))
+        screen.blit(text_restart, (110, 290))
 
         pygame.display.flip()
         pygame.time.Clock().tick(30)       
@@ -694,10 +721,10 @@ def main():
                     game_over = True  # Marquer le jeu comme terminé
                     pygame.mixer.music.stop()  # Arrête la musique actuelle
                     sheep_sound.play()  # Jouer le son de game over une seule fois
-                    pygame.time.delay(1000)  # Court délai avant de démarrer l'animation
+                    pygame.time.delay(800)  # Court délai avant de démarrer l'animation
                     draw_game_over_animation(win, grid)
                     # La ligne suivante assure qu'on ne passe dans cette section qu'une seule fois
-                    pygame.time.delay(2000)  # Attente après l'animation pour voir l'écran final
+                    pygame.time.delay(1000)  # Attente après l'animation pour voir l'écran final
                     print("Game Over! Final Score:", score, "Final Level:", level)
                     # highscore_screen(score)  # Afficher l'écran des scores ici peut-être
                     # Pas besoin de répéter le dessin de l'animation ou de jouer le son à nouveau ici

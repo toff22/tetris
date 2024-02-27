@@ -7,11 +7,18 @@ import random
 
 # Initialisation de Pygame
 pygame.init()
+pygame.font.init()
 
 
 # variables globales
 frame_index = 0
 last_update = pygame.time.get_ticks()
+MUSIC_END_EVENT = pygame.USEREVENT + 1
+# Paramètres de l'animation de la pièce suivante
+animation_speed = 10  # Images par seconde pour l'animation
+animation_time = 1000 / animation_speed  # Temps en ms avant de changer d'image
+last_update = 0  # Quand la dernière image a été mise à jour
+current_frame = 0  # L'index de l'image actuelle de l'animation
 
 
 
@@ -137,6 +144,9 @@ def setup_playlist(music_files):
         print("Aucune musique trouvée dans la playlist.")
         return
     
+    # Définir l'événement de fin de musique pour la lecture
+    pygame.mixer.music.set_endevent(MUSIC_END_EVENT)
+    
     play_next_track(music_files)  # Joue une première piste musicale aléatoirement
     
     # Définit l'action à entreprendre lorsque la musique actuelle se termine
@@ -227,7 +237,8 @@ def highscore_screen(score):
         screen.blit(text_restart, (110, 290))
 
         pygame.display.flip()
-        pygame.time.Clock().tick(30)       
+        pygame.time.Clock().tick(30)    
+           
 
 # Pièces de Tetris
 TETRIMINOS = {
@@ -497,20 +508,23 @@ def calculate_score(num_lines, level):
  
     
 def adjust_fall_speed(level):
-    base_speed = 0.8  # Vitesse de base pour le niveau 0
-    speed_increase_per_level = 0.1  # Augmentation de la vitesse par niveau
+    base_speed_ms = 1000  # Temps en millisecondes avant que la pièce tombe d'une ligne
+    speed_increase_per_level_ms = 50  # Accélère la chute de 50 ms par niveau
+    # Convertir la vitesse de base et l'augmentation par niveau en facteur de temps en millisecondes
+    normal_fall_speed_ms = max(base_speed_ms - (level * speed_increase_per_level_ms), 100)  # Minimum 100 ms
 
-    # Calculer la nouvelle vitesse en fonction du niveau
-    fall_speed = max(base_speed - (level * speed_increase_per_level), 0.1)  # Vitesse minimale de 0.1
-    global fast_fall_speed  # Déclarer fast_fall_speed comme une variable globale pour la mettre à jour
-    fast_fall_speed = adjust_fast_fall_speed(fall_speed)  # Ajuster la vitesse de chute rapide
-    return fall_speed
+    # Calculer la vitesse de chute rapide en utilisant un facteur
+    fast_fall_multiplier = 0.1  # Faire la chute rapide 10 fois plus rapide que la chute normale
+    fast_fall_speed_ms = normal_fall_speed_ms * fast_fall_multiplier
 
-def adjust_fast_fall_speed(normal_fall_speed):
-    # Faire la chute rapide 5 fois plus rapide que la chute normale
-    return normal_fall_speed * 0.1
+    return normal_fall_speed_ms, fast_fall_speed_ms
 
-fast_fall_speed = adjust_fast_fall_speed(adjust_fall_speed(0))
+# La fonction adjust_fast_fall_speed n'est plus nécessaire car la logique est intégrée dans adjust_fall_speed
+# fast_fall_speed est calculé directement dans adjust_fall_speed
+
+# Initialisation de fast_fall_speed avec la vitesse de chute rapide calculée pour le niveau 0
+# fast_fall_speed = adjust_fall_speed(0) * 0.1  # Cela assure que fast_fall_speed est initialisé correctement au démarrage
+
 
 def draw_next_shape(surface, shape):
     # Calculer la position centrale en largeur sur l'écran
@@ -537,20 +551,16 @@ def draw_next_shape(surface, shape):
 
 
 def draw_next_piece_animation(surface, shape_type, x, y, current_time):
-    global frame_index, last_update
-    images = animations_dict[shape_type]  # Utilisez les images depuis le dictionnaire
+    global frame_index, last_update, animation_time
+    images = animations_dict[shape_type]
 
-    # Mise à jour de l'index de frame et de la dernière mise à jour
-    if current_time - last_update > 30:  # Ajustez la durée selon vos besoins
+    if current_time - last_update > animation_time:
         frame_index += 1
         last_update = current_time
         if frame_index >= len(images):
             frame_index = 0
-    
-    # Ajouter une vérification pour éviter l'erreur 'list index out of range'
-    if frame_index < len(images):  # S'assurer que l'index est dans la plage
-        # Affichage de l'image actuelle
-        surface.blit(images[frame_index], (x, y))
+
+    surface.blit(images[frame_index], (x, y))
 
 
 def write_score_to_file(score):
@@ -588,10 +598,49 @@ def main():
         level = 0  # Réinitialiser le niveau
         game_over = False
 
-        current_piece = get_shape()
-        next_piece = get_shape()
+        fall_time = 0  # S'assurer que fall_time est initialisé avant de l'utiliser
         clock = pygame.time.Clock()
-        fall_time = 0
+
+        fall_time += clock.get_rawtime()
+
+        level = 0  # Ou tout autre logique pour définir le niveau initial
+        # Ajustez cette ligne pour utiliser soit la vitesse normale, soit la vitesse rapide
+        normal_fall_speed, fast_fall_speed = adjust_fall_speed(level)
+        fall_speed = normal_fall_speed  # Ou fast_fall_speed, selon le contexte
+        print(f"Valeur de fall_speed : {fall_speed}")  # Ceci devrait afficher une valeur numérique simple
+
+
+
+        # Plus tard dans votre boucle, utilisez la vitesse choisie pour la comparaison
+        if fall_time > fall_speed:  # Il est temps de tenter de déplacer la pièce vers le bas
+            fall_time = 0  # Réinitialiser le compteur de temps
+            current_piece.y += 1  # Essayer de déplacer la pièce vers le bas
+
+        normal_fall_speed, fast_fall_speed = adjust_fall_speed(level)
+        fall_speed = normal_fall_speed  # Utilisez normal_fall_speed pour une chute normale
+
+
+        FPS = 60
+
+
+        clock.tick(FPS)  # Maintient le jeu à 60 FPS
+
+        
+
+
+        if fall_time > fall_speed:
+            fall_time = 0
+            # Logique pour déplacer la pièce vers le bas
+            current_piece.y += 1
+            if not valid_space(current_piece, grid) or current_piece.y > 0:
+                current_piece.y -= 1
+                change_piece = True
+
+                current_piece = get_shape()
+                next_piece = get_shape()
+                clock = pygame.time.Clock()
+                fall_time = 0
+
 
         while not game_over:  # Boucle de jeu tant que le jeu n'est pas terminé
             # Ici, vous pouvez utiliser locked_positions sans souci puisqu'elle a été initialisée
@@ -620,6 +669,10 @@ def main():
             score = 0
             level = 0
             fall_speed = adjust_fall_speed(level)
+            print(f"Valeur de fall_speed : {fall_speed}")  # Ceci devrait afficher une valeur numérique simple
+
+
+            
 
             key_down_pressed_time = None  # Pour suivre le temps depuis que la touche bas a été pressée
 
@@ -706,6 +759,9 @@ def main():
                             # Réinitialiser la vitesse de chute à la valeur normale basée sur le niveau
                             fall_speed = adjust_fall_speed(level)
 
+                    elif event.type == MUSIC_END_EVENT:
+                        play_next_track(music_files)  # Assurez-vous que cette fonction gère la sélection et la lecture du prochain morceau.
+
                 if key_down_pressed_time:
                     if pygame.time.get_ticks() - key_down_pressed_time > 200:
                         while valid_space(current_piece, grid):
@@ -714,12 +770,12 @@ def main():
                         change_piece = True
                         key_down_pressed_time = None
 
-                if fall_time / 1000 > fall_speed and not change_piece:
-                    fall_time = 0
-                    current_piece.y += 1
-                    if not (valid_space(current_piece, grid)) and current_piece.y > 0:
-                        current_piece.y -= 1
-                        change_piece = True
+                # if fall_time / 1000 > fall_speed and not change_piece:
+                #     fall_time = 0
+                #     current_piece.y += 1
+                #     if not (valid_space(current_piece, grid)) and current_piece.y > 0:
+                #         current_piece.y -= 1
+                #         change_piece = True
 
                 shape_pos = convert_shape_format(current_piece)
 

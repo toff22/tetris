@@ -19,16 +19,14 @@ last_update = pygame.time.get_ticks()
 screen = pygame.display.set_mode((800, 600))  
 
 def load_animation_images(relative_path):
-    # Construire le chemin absolu à partir du chemin relatif
-    base_path = os.path.dirname(__file__)  # Répertoire où se trouve le script actuel
+    base_path = os.path.abspath(os.path.dirname(__file__))
     image_folder = os.path.join(base_path, relative_path)
-    
     images = []
-    for filename in os.listdir(image_folder):
+    for filename in sorted(os.listdir(image_folder)):
         if filename.endswith('.png'):
             image_path = os.path.join(image_folder, filename)
             images.append(pygame.image.load(image_path).convert_alpha())
-    return images 
+    return images
 
 # Chemin relatif à partir du répertoire du script courant
 relative_path = 'images/animation/tetroj'
@@ -73,9 +71,6 @@ def get_music_files(folder_path):
             music_files.append(os.path.join(folder_path, filename))
     return music_files
 
-
-
-
 line_clear_sound = pygame.mixer.Sound("sounds/line.mp3")
 rotate_sound = pygame.mixer.Sound("sounds/rotate.mp3")
 tetris_sound = pygame.mixer.Sound("sounds/tetris.mp3")
@@ -93,7 +88,7 @@ if ON_RPI:
     SCREEN_WIDTH, SCREEN_HEIGHT = 480, 480
     CELL_SIZE = 1516 // GRID_ROWS
 else:
-    SCREEN_WIDTH, SCREEN_HEIGHT = (420 + 240), 758
+    SCREEN_WIDTH, SCREEN_HEIGHT = (420 + 240 + 240), 758
     CELL_SIZE = 758 // GRID_ROWS
 GRID_ORIGIN = (0, 0)
 
@@ -130,28 +125,24 @@ def play_next_track(music_files):
 #     pygame.mixer.music.play()
 #     for i in range(1, len(music_files)):
 #         pygame.mixer.music.queue(music_files[i])
+    
+# Définit l'action à entreprendre lorsque la musique actuelle se termine
+def music_end_event():
+    play_next_track(current_music_files)  # Joue la prochaine piste musicale aléatoirement
 
 def setup_playlist(music_files):
     """Configure la playlist pour jouer les pistes musicales en aléatoire."""
     if not music_files:
         print("Aucune musique trouvée dans la playlist.")
         return
-    
+    global current_music_files
+    current_music_files = music_files
     play_next_track(music_files)  # Joue une première piste musicale aléatoirement
-    
-    # Définit l'action à entreprendre lorsque la musique actuelle se termine
-    def music_end_event():
-        play_next_track(music_files)  # Joue la prochaine piste musicale aléatoirement
 
     # Associe l'événement de fin de musique à la fonction music_end_event
     pygame.mixer.music.set_endevent(pygame.USEREVENT + 1)
-    pygame.event.custom_type()  # Génère un nouveau type d'événement unique
-    pygame.event.set_blocked(pygame.USEREVENT + 1)  # Bloque cet événement pour éviter sa propagation
-
-    # Ajoute un gestionnaire pour l'événement de fin de musique
-    for event in pygame.event.get():
-        if event.type == pygame.USEREVENT + 1:  # Vérifie si l'événement de fin de musique est détecté
-            music_end_event()
+    # pygame.event.custom_type()  # Génère un nouveau type d'événement unique
+    # pygame.event.set_blocked(pygame.USEREVENT + 1)  # Bloque cet événement pour éviter sa propagation
 
 def music_selection_screen():
     running = True
@@ -216,6 +207,7 @@ def highscore_screen(score):
                 quit()
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN:
+                    main()
                     running = False
 
         custom_font = pygame.font.Font(font_path, 24)
@@ -485,6 +477,8 @@ def draw_window(surface, grid, score, next_piece):
     # Dessiner la pièce suivante
     draw_next_shape(surface, next_piece)
 
+    draw_next_piece_animation(screen, next_piece.shape_type, 420, 200, pygame.time.get_ticks())
+
     # Mettre à jour l'affichage
     pygame.display.update()
     if ON_RPI:
@@ -497,7 +491,7 @@ def calculate_score(num_lines, level):
  
     
 def adjust_fall_speed(level):
-    base_speed = 0.8  # Vitesse de base pour le niveau 0
+    base_speed = 0.1  # Vitesse de base pour le niveau 0
     speed_increase_per_level = 0.1  # Augmentation de la vitesse par niveau
 
     # Calculer la nouvelle vitesse en fonction du niveau
@@ -541,7 +535,7 @@ def draw_next_piece_animation(surface, shape_type, x, y, current_time):
     images = animations_dict[shape_type]  # Utilisez les images depuis le dictionnaire
 
     # Mise à jour de l'index de frame et de la dernière mise à jour
-    if current_time - last_update > 30:  # Ajustez la durée selon vos besoins
+    if current_time - last_update > (1000 / 20):  # Ajustez la durée selon vos besoins
         frame_index += 1
         last_update = current_time
         if frame_index >= len(images):
@@ -643,14 +637,17 @@ def main():
 
                 current_time = pygame.time.get_ticks()
                 # Autre logique de jeu...
-                draw_next_piece_animation(screen, next_piece.shape_type, 420, 200, current_time)
-                pygame.display.update()
 
                 grid = create_grid(locked_positions)
                 fall_time += clock.get_rawtime()
-                clock.tick()
+                clock.tick(60)
 
                 for event in pygame.event.get():
+                    print("event: %s (%s)", event.type, pygame.USEREVENT + 1)
+                    # Ajoute un gestionnaire pour l'événement de fin de musique
+                    if event.type == pygame.USEREVENT + 1:  # Vérifie si l'événement de fin de musique est détecté
+                        music_end_event()
+
                     if event.type == pygame.JOYBUTTONDOWN:
                         print("Initialized joystick: {}".format(event.button))
 
@@ -743,7 +740,6 @@ def main():
                     fall_speed = adjust_fall_speed(level)
 
                 draw_window(win, grid, score, next_piece)
-                pygame.display.update()
 
                 # Vérification de la condition de défaite
                 if check_lost(locked_positions) and not game_over:

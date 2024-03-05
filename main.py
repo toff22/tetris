@@ -3,7 +3,13 @@ import pygame
 import random
 import numpy as np
 import random
+import time
 
+from adafruit_blinka.agnostic import detector
+
+ON_RPI = detector.board.any_raspberry_pi
+if ON_RPI:
+    os.putenv('SDL_FBDEV', '/dev/fb0')
 
 # Initialisation de Pygame
 pygame.init()
@@ -80,8 +86,6 @@ gameover_sound = pygame.mixer.Sound("sounds/GameOver.mp3")
 sheep_sound = pygame.mixer.Sound("sounds/sheep.wav")
 
 # Constantes
-# ON_RPI = True
-ON_RPI = False
 
 GRID_ROWS, GRID_COLS = 18, 10
 if ON_RPI:
@@ -298,6 +302,8 @@ if ON_RPI:
     from luma.core.legacy import text, show_message
     from luma.core.legacy.font import proportional, CP437_FONT, TINY_FONT, SINCLAIR_FONT, LCD_FONT
 
+    os.putenv('SDL_FBDEV', '/dev/fb0')
+
     serial = spi(port=0, device=0, gpio=noop())
     device = max7219(serial, cascaded=4, blocks_arranged_in_reverse_order=True)
     pixel_pin = board.D18
@@ -460,24 +466,21 @@ def draw_window(surface, grid, score, next_piece):
                     else:
                         pixels[j*GRID_ROWS+(GRID_ROWS-1-i)] = grid[i][j]
 
-
-    # if not ON_RPI:
-    #     # Dessiner les lignes de la grille
-    #     draw_grid(surface, grid)
+    # Dessiner la pièce suivante
+    # draw_next_shape(surface, next_piece)
+    if ON_RPI:
+        draw_next_piece_animation(screen, next_piece.shape_type, 0, 0, pygame.time.get_ticks())
+    else:
+        draw_next_piece_animation(screen, next_piece.shape_type, 420, 0, pygame.time.get_ticks())
 
     # Afficher le score
     font = pygame.font.SysFont('comicsans', 30)
     label = font.render(f'Score: {score}', 1, WHITE)
 
     if ON_RPI:
-        surface.blit(label, (10, 20))
+        surface.blit(label, (10, 10))
     else:
-        surface.blit(label, (GRID_ORIGIN[0] + GRID_COLS * CELL_SIZE + 10, 20))
-
-    # Dessiner la pièce suivante
-    draw_next_shape(surface, next_piece)
-
-    draw_next_piece_animation(screen, next_piece.shape_type, 420, 200, pygame.time.get_ticks())
+        surface.blit(label, (GRID_ORIGIN[0] + GRID_COLS * CELL_SIZE + 10, 10))
 
     # Mettre à jour l'affichage
     pygame.display.update()
@@ -571,10 +574,31 @@ def draw_game_over_animation(surface, grid):
     # Ajouter un délai final pour permettre de voir l'écran rempli avant de quitter
     #pygame.time.delay(2000)
 
+global joystick
+global joystick_detected   
+def detect_joystick():
+    joystick_detected=False
+    clock = pygame.time.Clock()
+    pygame.joystick.init()
+    while joystick_detected==False:
+        print("Waiting for controller...")
+        pygame.joystick.quit()
+        try:
+            joystick = pygame.joystick.Joystick(0) # create a joystick instance
+            joystick.init() # init instance
+            print("Initialized joystick: {}".format(joystick.get_name()))
+            joystick_detected = True
+        except pygame.error:
+            print("no joystick found.")
+            joystick_detected = False
+        clock.tick(1)
+
+
 
 def main():
 
     while True:  # Boucle principale pour permettre le redémarrage du jeu
+        detect_joystick()
         music_selection_screen()  # Laisser l'utilisateur choisir la musique avant de démarrer
 
         locked_positions = {}  # Initialiser locked_positions pour la nouvelle partie
@@ -618,22 +642,19 @@ def main():
             key_down_pressed_time = None  # Pour suivre le temps depuis que la touche bas a été pressée
 
             game_over = False  # Ajout d'une nouvelle variable pour suivre l'état de game over
-            joystick_detected=False
 
-            pygame.joystick.init()
             while run:
-                # if joystick_detected==False:
-                #     print("Waiting for controller...")
-                #     pygame.joystick.quit()
-                #     pygame.joystick.init()
-                #     try:
-                #         joystick = pygame.joystick.Joystick(0) # create a joystick instance
-                #         joystick.init() # init instance
-                #         print("Initialized joystick: {}".format(joystick.get_name()))
-                #         joystick_detected = True
-                #     except pygame.error:
-                #         print("no joystick found.")
-                #         joystick_detected = False
+                if joystick_detected==False:
+                    print("Waiting for controller...")
+                    pygame.joystick.quit()
+                    try:
+                        joystick = pygame.joystick.Joystick(0) # create a joystick instance
+                        joystick.init() # init instance
+                        print("Initialized joystick: {}".format(joystick.get_name()))
+                        joystick_detected = True
+                    except pygame.error:
+                        print("no joystick found.")
+                        joystick_detected = False
 
                 current_time = pygame.time.get_ticks()
                 # Autre logique de jeu...

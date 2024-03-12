@@ -625,8 +625,9 @@ def detect_joystick():
                 print("Joystick initialization failed:", e)
         pygame.time.wait(100)  # Wait a bit before trying again to avoid spamming
 
-
+fall_speed = 0
 def main():
+    global fall_speed
 
     while True:  # Boucle principale pour permettre le redémarrage du jeu
         detect_joystick()
@@ -682,6 +683,49 @@ def main():
                 fall_time += clock.get_rawtime()
                 clock.tick(60)
 
+                def move(s):
+                    current_piece.x -= s
+                    if not valid_space(current_piece, grid):
+                        current_piece.x += s
+
+                def down():
+                    # À ce point, nous ne bougeons pas la pièce vers le bas immédiatement
+                    # mais ajustons la vitesse de chute à fast_fall_speed
+                    global fall_speed
+                    fall_speed = fast_fall_speed
+
+                def rotate(s):
+                    rotate_sound.play()
+                    original_position = (current_piece.x, current_piece.y)
+                    original_rotation = current_piece.rotation
+                    current_piece.rotation = (current_piece.rotation + s) % len(current_piece.shape)
+
+                    # Ajustement pour la pièce "I" lors de la rotation
+                    if current_piece.shape_type == 'I':
+                        if current_piece.rotation % 2 == 0:  # Rotation horizontale
+                            current_piece.x -= 2
+                        else:  # Rotation verticale
+                            current_piece.x += 2
+
+                    # Vérifier si la pièce est toujours dans la grille après la rotation et l'ajustement
+                    if not valid_space(current_piece, grid):
+                        # Tenter de déplacer la pièce pour qu'elle reste dans les limites de la grille
+                        for dx in [-1, 1, -2, 2]:  # Essayer de déplacer de deux cases dans chaque direction
+                            current_piece.x += dx
+                            if valid_space(current_piece, grid):
+                                break
+                            current_piece.x -= dx
+
+                    # Si la pièce ne peut toujours pas être placée, annuler la rotation et l'ajustement
+                    if not valid_space(current_piece, grid):
+                        current_piece.x, current_piece.y = original_position
+                        current_piece.rotation = original_rotation
+                    
+                def release():
+                    # Réinitialiser la vitesse de chute à la valeur normale basée sur le niveau
+                    global fall_speed
+                    fall_speed = adjust_fall_speed(level)
+
                 for event in pygame.event.get():
                     print("event: %s (%s)", event.type, pygame.USEREVENT + 1)
                     # Ajoute un gestionnaire pour l'événement de fin de musique
@@ -690,103 +734,34 @@ def main():
 
                     if event.type == pygame.QUIT:
                         run = False
-
                     
                     if event.type == pygame.JOYHATMOTION:
                         if event.value == JHAT_DOWN:
-                            # À ce point, nous ne bougeons pas la pièce vers le bas immédiatement
-                            # mais ajustons la vitesse de chute à fast_fall_speed
-                            fall_speed = fast_fall_speed
+                            down()
                         elif event.value == JHAT_LEFT:
-                            current_piece.x -= 1
-                            if not valid_space(current_piece, grid):
-                                current_piece.x += 1
+                            move(1)
                         elif event.value == JHAT_RIGHT:
-                            current_piece.x += 1
-                            if not valid_space(current_piece, grid):
-                                current_piece.x -= 1
+                            move(-1)
                         elif event.value == JHAT_RELEASE:
-                            # Réinitialiser la vitesse de chute à la valeur normale basée sur le niveau
-                            fall_speed = adjust_fall_speed(level)
-                            
+                            release()
+
                     elif event.type == pygame.JOYBUTTONDOWN:
-                        if event.button == JKEY_A or event.button == JKEY_B:
-                            rotate_sound.play()
-                            original_position = (current_piece.x, current_piece.y)
-                            original_rotation = current_piece.rotation
-                            if event.button == JKEY_A:
-                                current_piece.rotation = (current_piece.rotation + 1) % len(current_piece.shape)
-                            elif event.button == JKEY_B:
-                                current_piece.rotation = (current_piece.rotation - 1) % len(current_piece.shape)
-
-                            # Ajustement pour la pièce "I" lors de la rotation
-                            if current_piece.shape_type == 'I':
-                                if current_piece.rotation % 2 == 0:  # Rotation horizontale
-                                    current_piece.x -= 2
-                                else:  # Rotation verticale
-                                    current_piece.x += 2
-
-                            # Vérifier si la pièce est toujours dans la grille après la rotation et l'ajustement
-                            if not valid_space(current_piece, grid):
-                                # Tenter de déplacer la pièce pour qu'elle reste dans les limites de la grille
-                                for dx in [-1, 1, -2, 2]:  # Essayer de déplacer de deux cases dans chaque direction
-                                    current_piece.x += dx
-                                    if valid_space(current_piece, grid):
-                                        break
-                                    current_piece.x -= dx
-
-                            # Si la pièce ne peut toujours pas être placée, annuler la rotation et l'ajustement
-                            if not valid_space(current_piece, grid):
-                                current_piece.x, current_piece.y = original_position
-                                current_piece.rotation = original_rotation
-
+                        if event.button == JKEY_A:
+                            rotate(1)
+                        if event.button == JKEY_B:
+                            rotate(-1)
+                            
                     if event.type == pygame.KEYDOWN:
                         if event.key == pygame.K_LEFT:
-                            current_piece.x -= 1
-                            if not valid_space(current_piece, grid):
-                                current_piece.x += 1
-
+                            move(1)
                         elif event.key == pygame.K_RIGHT:
-                            current_piece.x += 1
-                            if not valid_space(current_piece, grid):
-                                current_piece.x -= 1
-
+                            move(-1)
                         elif event.key == pygame.K_DOWN:
-                            # À ce point, nous ne bougeons pas la pièce vers le bas immédiatement
-                            # mais ajustons la vitesse de chute à fast_fall_speed
-                            fall_speed = fast_fall_speed
-
+                            down()
                         elif event.key == pygame.K_UP:
-                            rotate_sound.play()
-                            original_position = (current_piece.x, current_piece.y)
-                            original_rotation = current_piece.rotation
-                            current_piece.rotation = (current_piece.rotation + 1) % len(current_piece.shape)
-
-                            # Ajustement pour la pièce "I" lors de la rotation
-                            if current_piece.shape_type == 'I':
-                                if current_piece.rotation % 2 == 0:  # Rotation horizontale
-                                    current_piece.x -= 2
-                                else:  # Rotation verticale
-                                    current_piece.x += 2
-
-                            # Vérifier si la pièce est toujours dans la grille après la rotation et l'ajustement
-                            if not valid_space(current_piece, grid):
-                                # Tenter de déplacer la pièce pour qu'elle reste dans les limites de la grille
-                                for dx in [-1, 1, -2, 2]:  # Essayer de déplacer de deux cases dans chaque direction
-                                    current_piece.x += dx
-                                    if valid_space(current_piece, grid):
-                                        break
-                                    current_piece.x -= dx
-
-                            # Si la pièce ne peut toujours pas être placée, annuler la rotation et l'ajustement
-                            if not valid_space(current_piece, grid):
-                                current_piece.x, current_piece.y = original_position
-                                current_piece.rotation = original_rotation
-
+                            rotate(1)
                     if event.type == pygame.KEYUP:
-                        if event.key == pygame.K_DOWN:
-                            # Réinitialiser la vitesse de chute à la valeur normale basée sur le niveau
-                            fall_speed = adjust_fall_speed(level)
+                        release()
 
                 if key_down_pressed_time:
                     if pygame.time.get_ticks() - key_down_pressed_time > 200:

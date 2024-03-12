@@ -5,7 +5,23 @@ import numpy as np
 import random
 import time
 
+from pygame.locals import *
+
 from adafruit_blinka.agnostic import detector
+
+JHAT_RELEASE=(0, 0)
+JHAT_UP=(0, 1)
+JHAT_DOWN=(0, -1)
+JHAT_LEFT=(-1, 0)
+JHAT_RIGHT=(1, 0)
+JKEY_X=3
+JKEY_Y=4
+JKEY_A=0
+JKEY_B=1
+JKEY_R=7
+JKEY_L=6
+JKEY_SEL=10
+JKEY_START=11
 
 ON_RPI = detector.board.any_raspberry_pi
 if ON_RPI:
@@ -174,7 +190,9 @@ def music_selection_screen():
         header_text = custom_font.render('MUSIC TYPE', True, (255, 255, 255))  # Blanc
         screen.blit(header_text, (132, 120))  # Modifier (100, 50) pour ajuster la position
 
+        pygame.event.pump()
         for event in pygame.event.get():
+            print("event.type: %s", event.type)
             if event.type == pygame.QUIT:
                 pygame.quit()
                 quit()
@@ -190,6 +208,20 @@ def music_selection_screen():
                     elif current_selection == 1:  # B-Track sélectionné
                         setup_playlist(playlist_files)
                     running = False
+
+            elif event.type == pygame.JOYBUTTONDOWN:
+                if event.button == JKEY_A:
+                    if current_selection == 0:  # A-Track sélectionné
+                        pygame.mixer.music.load("sounds/A-Type.mp3")
+                        pygame.mixer.music.play(-1)
+                    elif current_selection == 1:  # B-Track sélectionné
+                        setup_playlist(playlist_files)
+                    running = False
+            elif event.type == pygame.JOYHATMOTION:
+                if event.value == JHAT_UP:
+                    current_selection = (current_selection - 1) % len(music_options)
+                elif event.value == JHAT_DOWN:
+                    current_selection = (current_selection + 1) % len(music_options)
 
         custom_font = pygame.font.Font(font_path, 24)
         for i, option in enumerate(music_options):
@@ -574,25 +606,24 @@ def draw_game_over_animation(surface, grid):
     # Ajouter un délai final pour permettre de voir l'écran rempli avant de quitter
     #pygame.time.delay(2000)
 
-global joystick
-global joystick_detected   
+joystick = None
 def detect_joystick():
-    joystick_detected=False
-    clock = pygame.time.Clock()
+    global joystick
     pygame.joystick.init()
-    while joystick_detected==False:
-        print("Waiting for controller...")
-        pygame.joystick.quit()
-        try:
-            joystick = pygame.joystick.Joystick(0) # create a joystick instance
-            joystick.init() # init instance
-            print("Initialized joystick: {}".format(joystick.get_name()))
-            joystick_detected = True
-        except pygame.error:
-            print("no joystick found.")
-            joystick_detected = False
-        clock.tick(1)
 
+    # Wait for a joystick to become available
+    joystick = None
+    while joystick is None:
+        pygame.event.pump()  # Process event queue
+        for i in range(pygame.joystick.get_count()):
+            try:
+                joystick = pygame.joystick.Joystick(i)
+                joystick.init()
+                print(f"Initialized joystick: {joystick.get_name()}")
+                break
+            except pygame.error as e:
+                print("Joystick initialization failed:", e)
+        pygame.time.wait(100)  # Wait a bit before trying again to avoid spamming
 
 
 def main():
@@ -644,18 +675,6 @@ def main():
             game_over = False  # Ajout d'une nouvelle variable pour suivre l'état de game over
 
             while run:
-                if joystick_detected==False:
-                    print("Waiting for controller...")
-                    pygame.joystick.quit()
-                    try:
-                        joystick = pygame.joystick.Joystick(0) # create a joystick instance
-                        joystick.init() # init instance
-                        print("Initialized joystick: {}".format(joystick.get_name()))
-                        joystick_detected = True
-                    except pygame.error:
-                        print("no joystick found.")
-                        joystick_detected = False
-
                 current_time = pygame.time.get_ticks()
                 # Autre logique de jeu...
 
@@ -669,12 +688,57 @@ def main():
                     if event.type == pygame.USEREVENT + 1:  # Vérifie si l'événement de fin de musique est détecté
                         music_end_event()
 
-                    if event.type == pygame.JOYBUTTONDOWN:
-                        print("Initialized joystick: {}".format(event.button))
-
                     if event.type == pygame.QUIT:
                         run = False
-                        
+
+                    
+                    if event.type == pygame.JOYHATMOTION:
+                        if event.value == JHAT_DOWN:
+                            # À ce point, nous ne bougeons pas la pièce vers le bas immédiatement
+                            # mais ajustons la vitesse de chute à fast_fall_speed
+                            fall_speed = fast_fall_speed
+                        elif event.value == JHAT_LEFT:
+                            current_piece.x -= 1
+                            if not valid_space(current_piece, grid):
+                                current_piece.x += 1
+                        elif event.value == JHAT_RIGHT:
+                            current_piece.x += 1
+                            if not valid_space(current_piece, grid):
+                                current_piece.x -= 1
+                        elif event.value == JHAT_RELEASE:
+                            # Réinitialiser la vitesse de chute à la valeur normale basée sur le niveau
+                            fall_speed = adjust_fall_speed(level)
+                            
+                    elif event.type == pygame.JOYBUTTONDOWN:
+                        if event.button == JKEY_A or event.button == JKEY_B:
+                            rotate_sound.play()
+                            original_position = (current_piece.x, current_piece.y)
+                            original_rotation = current_piece.rotation
+                            if event.button == JKEY_A:
+                                current_piece.rotation = (current_piece.rotation + 1) % len(current_piece.shape)
+                            elif event.button == JKEY_B:
+                                current_piece.rotation = (current_piece.rotation - 1) % len(current_piece.shape)
+
+                            # Ajustement pour la pièce "I" lors de la rotation
+                            if current_piece.shape_type == 'I':
+                                if current_piece.rotation % 2 == 0:  # Rotation horizontale
+                                    current_piece.x -= 2
+                                else:  # Rotation verticale
+                                    current_piece.x += 2
+
+                            # Vérifier si la pièce est toujours dans la grille après la rotation et l'ajustement
+                            if not valid_space(current_piece, grid):
+                                # Tenter de déplacer la pièce pour qu'elle reste dans les limites de la grille
+                                for dx in [-1, 1, -2, 2]:  # Essayer de déplacer de deux cases dans chaque direction
+                                    current_piece.x += dx
+                                    if valid_space(current_piece, grid):
+                                        break
+                                    current_piece.x -= dx
+
+                            # Si la pièce ne peut toujours pas être placée, annuler la rotation et l'ajustement
+                            if not valid_space(current_piece, grid):
+                                current_piece.x, current_piece.y = original_position
+                                current_piece.rotation = original_rotation
 
                     if event.type == pygame.KEYDOWN:
                         if event.key == pygame.K_LEFT:

@@ -8,6 +8,7 @@ import time
 from adafruit_blinka.agnostic import detector
 
 ON_RPI = detector.board.any_raspberry_pi
+print("ON_RPI: %s", ON_RPI)
 if ON_RPI:
     os.putenv('SDL_FBDEV', '/dev/fb0')
 
@@ -149,6 +150,7 @@ def setup_playlist(music_files):
     # pygame.event.set_blocked(pygame.USEREVENT + 1)  # Bloque cet événement pour éviter sa propagation
 
 def music_selection_screen():
+    print("--------- MUSIC_SELECTION_SCREEN --------")
     running = True
     music_options = ["Original", "Megademo"]
     current_selection = 0
@@ -598,7 +600,7 @@ def detect_joystick():
 def main():
 
     while True:  # Boucle principale pour permettre le redémarrage du jeu
-        detect_joystick()
+        # detect_joystick()
         music_selection_screen()  # Laisser l'utilisateur choisir la musique avant de démarrer
 
         locked_positions = {}  # Initialiser locked_positions pour la nouvelle partie

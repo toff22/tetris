@@ -626,6 +626,7 @@ def detect_joystick():
         pygame.time.wait(100)  # Wait a bit before trying again to avoid spamming
 
 fall_speed = 0
+side_motion = 0
 def main():
     global fall_speed
 
@@ -652,10 +653,6 @@ def main():
                 draw_game_over_animation(win, locked_positions)  # Assurez-vous de passer les arguments corrects
                 highscore_screen(score)
 
-
-            # animation_images = load_animation_images('images/animation/tetroj')
-            #musicloop_sound.play(-1)
-
             locked_positions = {}
             grid = create_grid(locked_positions)
 
@@ -665,18 +662,14 @@ def main():
             next_piece = get_shape()
             clock = pygame.time.Clock()
             fall_time = 0
-            frame_index = 0
-            last_update = pygame.time.get_ticks()
             score = 0
             level = 0
             fall_speed = adjust_fall_speed(level)
 
-            key_down_pressed_time = None  # Pour suivre le temps depuis que la touche bas a été pressée
-
             game_over = False  # Ajout d'une nouvelle variable pour suivre l'état de game over
-
+            count = 0
             while run:
-                current_time = pygame.time.get_ticks()
+                count += 1
                 # Autre logique de jeu...
 
                 grid = create_grid(locked_positions)
@@ -684,9 +677,8 @@ def main():
                 clock.tick(60)
 
                 def move(s):
-                    current_piece.x -= s
-                    if not valid_space(current_piece, grid):
-                        current_piece.x += s
+                    global side_motion
+                    side_motion = s
 
                 def down():
                     # À ce point, nous ne bougeons pas la pièce vers le bas immédiatement
@@ -723,11 +715,13 @@ def main():
                     
                 def release():
                     # Réinitialiser la vitesse de chute à la valeur normale basée sur le niveau
-                    global fall_speed
+                    global fall_speed, side_motion
                     fall_speed = adjust_fall_speed(level)
+                    side_motion = 0
+                    print("release - side_motion:", side_motion)
 
                 for event in pygame.event.get():
-                    print("event: %s (%s)", event.type, pygame.USEREVENT + 1)
+                    # print("event: %s (%s)", event.type, pygame.USEREVENT + 1)
                     # Ajoute un gestionnaire pour l'événement de fin de musique
                     if event.type == pygame.USEREVENT + 1:  # Vérifie si l'événement de fin de musique est détecté
                         music_end_event()
@@ -763,13 +757,11 @@ def main():
                     if event.type == pygame.KEYUP:
                         release()
 
-                if key_down_pressed_time:
-                    if pygame.time.get_ticks() - key_down_pressed_time > 200:
-                        while valid_space(current_piece, grid):
-                            current_piece.y += 1
-                        current_piece.y -= 1
-                        change_piece = True
-                        key_down_pressed_time = None
+                if count == 5:
+                    count = 0
+                    current_piece.x -= side_motion
+                    if not valid_space(current_piece, grid):
+                        current_piece.x += side_motion
 
                 if fall_time / 1000 > fall_speed and not change_piece:
                     fall_time = 0

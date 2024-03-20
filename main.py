@@ -38,7 +38,7 @@ last_update = pygame.time.get_ticks()
 
 
 # Définit le mode vidéo en créant une fenêtre. Ajustez la taille selon vos besoins.
-screen = pygame.display.set_mode((800, 600))  
+screen = pygame.display.set_mode((800, 600))
 
 def load_animation_images(relative_path):
     base_path = os.path.abspath(os.path.dirname(__file__))
@@ -93,13 +93,13 @@ def get_music_files(folder_path):
             music_files.append(os.path.join(folder_path, filename))
     return music_files
 
-line_clear_sound = pygame.mixer.Sound("sounds/line.mp3")
-rotate_sound = pygame.mixer.Sound("sounds/rotate.mp3")
-tetris_sound = pygame.mixer.Sound("sounds/tetris.mp3")
-newpiece_sound = pygame.mixer.Sound("sounds/piece.mp3")
-musicloop_sound = pygame.mixer.Sound("sounds/A-Type.mp3")
-gameover_sound = pygame.mixer.Sound("sounds/GameOver.mp3")
-sheep_sound = pygame.mixer.Sound("sounds/sheep.wav")
+line_clear_sound = pygame.mixer.Sound("sounds/line.ogg")
+rotate_sound = pygame.mixer.Sound("sounds/rotate.ogg")
+tetris_sound = pygame.mixer.Sound("sounds/tetris.ogg")
+newpiece_sound = pygame.mixer.Sound("sounds/piece.ogg")
+musicloop_sound = pygame.mixer.Sound("sounds/A-Type.ogg")
+gameover_sound = pygame.mixer.Sound("sounds/GameOver.ogg")
+sheep_sound = pygame.mixer.Sound("sounds/sheep.ogg")
 
 # Constantes
 
@@ -145,7 +145,7 @@ def play_next_track(music_files):
 #     pygame.mixer.music.play()
 #     for i in range(1, len(music_files)):
 #         pygame.mixer.music.queue(music_files[i])
-    
+
 # Définit l'action à entreprendre lorsque la musique actuelle se termine
 def music_end_event():
     play_next_track(current_music_files)  # Joue la prochaine piste musicale aléatoirement
@@ -174,7 +174,7 @@ def music_selection_screen():
      # Utiliser custom_font ici pour rendre le texte
     font_path = 'font/gameboy.ttf'  # Remplacez par le chemin correct de votre police
     custom_font = pygame.font.Font(font_path, 24)  # Charger la police personnalisée
-    
+
 
 
     while running:
@@ -255,69 +255,69 @@ def highscore_screen(score):
         screen.blit(text_restart, (110, 290))
 
         pygame.display.flip()
-        pygame.time.Clock().tick(30)       
+        pygame.time.Clock().tick(30)
 
 # Pièces de Tetris
 TETRIMINOS = {
     'I': [
         [[1, 1, 1, 1]],
-        [[1], 
-         [1], 
-         [1], 
+        [[1],
+         [1],
+         [1],
          [1]]
     ],
     'O': [
-        [[2, 2], 
+        [[2, 2],
          [2, 2]]
     ],
     'T': [
-        [[0, 3, 0], 
+        [[0, 3, 0],
          [3, 3, 3]],
-        [[3, 0], 
-         [3, 3], 
+        [[3, 0],
+         [3, 3],
          [3, 0]],
-        [[3, 3, 3], 
+        [[3, 3, 3],
          [0, 3, 0]],
-        [[0, 3], 
-         [3, 3], 
+        [[0, 3],
+         [3, 3],
          [0, 3]]
     ],
     'S': [
-        [[0, 4, 4], 
+        [[0, 4, 4],
          [4, 4, 0]],
-        [[4, 0], 
-         [4, 4], 
+        [[4, 0],
+         [4, 4],
          [0, 4]]
     ],
     'Z': [
-        [[5, 5, 0], 
+        [[5, 5, 0],
          [0, 5, 5]],
-        [[0, 5], 
-         [5, 5], 
+        [[0, 5],
+         [5, 5],
          [5, 0]]
     ],
     'J': [
-        [[6, 0, 0], 
+        [[6, 0, 0],
          [6, 6, 6]],
-        [[6, 6], 
-         [6, 0], 
+        [[6, 6],
+         [6, 0],
          [6, 0]],
-        [[6, 6, 6], 
+        [[6, 6, 6],
          [0, 0, 6]],
-        [[0, 6], 
-         [0, 6], 
+        [[0, 6],
+         [0, 6],
          [6, 6]]
     ],
     'L': [
-        [[0, 0, 7], 
+        [[0, 0, 7],
          [7, 7, 7]],
-        [[7, 0], 
-         [7, 0], 
+        [[7, 0],
+         [7, 0],
          [7, 7]],
-        [[7, 7, 7], 
+        [[7, 7, 7],
          [7, 0, 0]],
-        [[7, 7], 
-         [0, 7], 
+        [[7, 7],
+         [0, 7],
          [0, 7]]
     ]
 }
@@ -406,7 +406,7 @@ def get_shape():
     shape_width = max(len(row) for row in shape[0])  # Calculer la largeur de la pièce
     start_x = GRID_COLS // 2 - shape_width // 2  # Position de départ au centre de la grille
     return Piece(start_x, 0, shape, shape_type)  # Utiliser la clé pour récupérer la pièce
-    
+
 def draw_grid(surface, grid):
     sx = GRID_ORIGIN[0]
     sy = GRID_ORIGIN[1]
@@ -485,9 +485,9 @@ def draw_window(surface, grid, score, next_piece):
     for i in range(len(grid)):
         for j in range(len(grid[i])):
             if not ON_RPI:
-                pygame.draw.rect(surface, grid[i][j], 
-                                (GRID_ORIGIN[0] + j * CELL_SIZE, 
-                                GRID_ORIGIN[1] + i * CELL_SIZE, 
+                pygame.draw.rect(surface, grid[i][j],
+                                (GRID_ORIGIN[0] + j * CELL_SIZE,
+                                GRID_ORIGIN[1] + i * CELL_SIZE,
                                 CELL_SIZE, CELL_SIZE), 0)
             else:
                 # Draw on LED
@@ -518,13 +518,13 @@ def draw_window(surface, grid, score, next_piece):
     pygame.display.update()
     if ON_RPI:
         pixels.show()
-    
+
 def calculate_score(num_lines, level):
     score_values = {0: 0, 1: 40, 2: 100, 3: 300, 4: 1200}
     return score_values[num_lines] * (level + 1)
 
- 
-    
+
+
 def adjust_fall_speed(level):
     base_speed = 0.1  # Vitesse de base pour le niveau 0
     speed_increase_per_level = 0.1  # Augmentation de la vitesse par niveau
@@ -559,9 +559,9 @@ def draw_next_shape(surface, shape):
     for i, row in enumerate(formatted_shape):
         for j, cell in enumerate(row):
             if cell != 0:
-                pygame.draw.rect(surface, dark_grey, 
-                                 (preview_x + (j + offset_x) * CELL_SIZE, 
-                                  preview_y + i * CELL_SIZE, 
+                pygame.draw.rect(surface, dark_grey,
+                                 (preview_x + (j + offset_x) * CELL_SIZE,
+                                  preview_y + i * CELL_SIZE,
                                   CELL_SIZE, CELL_SIZE))
 
 
@@ -575,7 +575,7 @@ def draw_next_piece_animation(surface, shape_type, x, y, current_time):
         last_update = current_time
         if frame_index >= len(images):
             frame_index = 0
-    
+
     # Ajouter une vérification pour éviter l'erreur 'list index out of range'
     if frame_index < len(images):  # S'assurer que l'index est dans la plage
         # Affichage de l'image actuelle
@@ -589,16 +589,16 @@ def write_score_to_file(score):
 def draw_game_over_animation(surface, grid):
     # Arrêter la musique
     musicloop_sound.stop()
-    
+
     gameover_sound.play()
 
     # Remplir progressivement chaque ligne de blanc, case par case
     for i in range(GRID_ROWS - 1, -1, -1):
         for j in range(GRID_COLS):
             grid[i][j] = WHITE
-            pygame.draw.rect(surface, WHITE, 
-                             (GRID_ORIGIN[0] + j * CELL_SIZE, 
-                              GRID_ORIGIN[1] + i * CELL_SIZE, 
+            pygame.draw.rect(surface, WHITE,
+                             (GRID_ORIGIN[0] + j * CELL_SIZE,
+                              GRID_ORIGIN[1] + i * CELL_SIZE,
                               CELL_SIZE, CELL_SIZE))
             pygame.display.update()
             pygame.time.delay(5)  # Ajuster le délai pour contrôler la vitesse de l'animation
@@ -712,7 +712,7 @@ def main():
                     if not valid_space(current_piece, grid):
                         current_piece.x, current_piece.y = original_position
                         current_piece.rotation = original_rotation
-                    
+
                 def release():
                     # Réinitialiser la vitesse de chute à la valeur normale basée sur le niveau
                     global fall_speed, side_motion
@@ -728,7 +728,7 @@ def main():
 
                     if event.type == pygame.QUIT:
                         run = False
-                    
+
                     if event.type == pygame.JOYHATMOTION:
                         if event.value == JHAT_DOWN:
                             down()
@@ -744,7 +744,7 @@ def main():
                             rotate(1)
                         if event.button == JKEY_B:
                             rotate(-1)
-                            
+
                     if event.type == pygame.KEYDOWN:
                         if event.key == pygame.K_LEFT:
                             move(1)
@@ -805,13 +805,13 @@ def main():
                     print("Game Over! Final Score:", score, "Final Level:", level)
                     # highscore_screen(score)  # Afficher l'écran des scores ici peut-être
                     # Pas besoin de répéter le dessin de l'animation ou de jouer le son à nouveau ici
-                
+
                 if game_over:
                     # draw_game_over_animation(screen, grid)  # Utilisez 'screen' et non 'win'
                     # pygame.time.delay(2000)  # Temps d'attente après l'animation de fin
                     highscore_screen(score)  # Appel à l'écran des scores
                     run = False  # Arrêter la boucle principale du jeu
-            
+
             pygame.quit()
             # pygame.display.quit()
 

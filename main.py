@@ -26,6 +26,7 @@ JKEY_START=11
 ON_RPI = detector.board.any_raspberry_pi
 if ON_RPI:
     os.putenv('SDL_FBDEV', '/dev/fb0')
+    os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 # Initialisation de Pygame
 pygame.init()
@@ -38,7 +39,13 @@ last_update = pygame.time.get_ticks()
 
 
 # Définit le mode vidéo en créant une fenêtre. Ajustez la taille selon vos besoins.
-screen = pygame.display.set_mode((800, 600))
+def refresh():
+    fd = open("/dev/fb0","wb")
+    fd.write(screen.get_buffer())
+    fd.close()
+
+screen = pygame.Surface((480, 480), 0, 16)
+pygame.display.set_mode((480, 480))
 
 def load_animation_images(relative_path):
     base_path = os.path.abspath(os.path.dirname(__file__))
@@ -99,7 +106,7 @@ tetris_sound = pygame.mixer.Sound("sounds/tetris.ogg")
 newpiece_sound = pygame.mixer.Sound("sounds/piece.ogg")
 musicloop_sound = pygame.mixer.Sound("sounds/A-Type.ogg")
 gameover_sound = pygame.mixer.Sound("sounds/GameOver.ogg")
-sheep_sound = pygame.mixer.Sound("sounds/sheep.ogg")
+sheep_sound = pygame.mixer.Sound("sounds/sheep.wav")
 
 # Constantes
 
@@ -228,6 +235,7 @@ def music_selection_screen():
             text = custom_font.render(option, True, WHITE if i == current_selection else (100, 100, 100))
             screen.blit(text, (150, 170 + i * 30))
 
+        refresh()
         pygame.display.flip()
         pygame.time.Clock().tick(30)
 
@@ -254,6 +262,7 @@ def highscore_screen(score):
         screen.blit(text_score_label, (120, 160))
         screen.blit(text_restart, (110, 290))
 
+        refresh()
         pygame.display.flip()
         pygame.time.Clock().tick(30)
 
@@ -515,7 +524,8 @@ def draw_window(surface, grid, score, next_piece):
         surface.blit(label, (GRID_ORIGIN[0] + GRID_COLS * CELL_SIZE + 10, 10))
 
     # Mettre à jour l'affichage
-    pygame.display.update()
+    refresh()
+    # pygame.display.update()
     if ON_RPI:
         pixels.show()
 
@@ -631,8 +641,8 @@ def main():
     global fall_speed
 
     while True:  # Boucle principale pour permettre le redémarrage du jeu
-        detect_joystick()
-        music_selection_screen()  # Laisser l'utilisateur choisir la musique avant de démarrer
+        # detect_joystick()
+        # music_selection_screen()  # Laisser l'utilisateur choisir la musique avant de démarrer
 
         locked_positions = {}  # Initialiser locked_positions pour la nouvelle partie
         score = 0  # Initialiser le score à 0 pour chaque nouvelle partie

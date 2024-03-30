@@ -27,10 +27,12 @@ ON_RPI = detector.board.any_raspberry_pi
 if ON_RPI:
     os.putenv('SDL_FBDEV', '/dev/fb0')
     os.environ["SDL_VIDEODRIVER"] = "dummy"
+    os.environ["SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS"] = "1"
+    # os.environ["SDL_VIDEODRIVER"] = "fbcon"
 
 # Initialisation de Pygame
+pygame.mixer.init(devicename="Plantronics Blackwire 5220 Seri, USB Audio")
 pygame.init()
-
 
 # variables globales
 frame_index = 0
@@ -43,9 +45,11 @@ def refresh():
     fd = open("/dev/fb0","wb")
     fd.write(screen.get_buffer())
     fd.close()
+    pygame.display.flip()
 
 screen = pygame.Surface((480, 480), 0, 16)
 pygame.display.set_mode((480, 480))
+# screen = pygame.display.set_mode((480, 480))
 
 def load_animation_images(relative_path):
     base_path = os.path.abspath(os.path.dirname(__file__))
@@ -182,8 +186,7 @@ def music_selection_screen():
     font_path = 'font/gameboy.ttf'  # Remplacez par le chemin correct de votre police
     custom_font = pygame.font.Font(font_path, 24)  # Charger la police personnalisée
 
-
-
+    print("music_selection_screen: running ({})".format(running))
     while running:
 
         # header_text = custom_font.render('Start with', True, (255, 255, 255))  # Blanc
@@ -236,7 +239,7 @@ def music_selection_screen():
             screen.blit(text, (150, 170 + i * 30))
 
         refresh()
-        pygame.display.flip()
+        # pygame.display.flip()
         pygame.time.Clock().tick(30)
 
 def highscore_screen(score):
@@ -251,19 +254,23 @@ def highscore_screen(score):
                 quit()
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN:
-                    main()
+                    # main()
+                    running = False
+            elif event.type == pygame.JOYBUTTONDOWN:
+                if event.button == JKEY_B:
+                    # main()
                     running = False
 
         custom_font = pygame.font.Font(font_path, 24)
         text_score_label = custom_font.render("HIGHSCORE<", True, WHITE)
         text_score = custom_font.render(f"{score}", True, BLACK)
-        text_restart = custom_font.render("A to Restart", True, WHITE)
+        text_restart = custom_font.render("B to Restart", True, WHITE)
         screen.blit(text_score, (120, 226))
         screen.blit(text_score_label, (120, 160))
         screen.blit(text_restart, (110, 290))
 
         refresh()
-        pygame.display.flip()
+        # pygame.display.flip()
         pygame.time.Clock().tick(30)
 
 # Pièces de Tetris
@@ -485,7 +492,7 @@ def clear_rows(grid, locked):
 
 
 
-def draw_window(surface, grid, score, next_piece):
+def draw_window(surface, grid, score, level, next_piece):
     surface.fill(BLACK)
     if ON_RPI:
         pixels.fill((0, 0, 0))
@@ -515,13 +522,16 @@ def draw_window(surface, grid, score, next_piece):
         draw_next_piece_animation(screen, next_piece.shape_type, 420, 0, pygame.time.get_ticks())
 
     # Afficher le score
-    font = pygame.font.SysFont('comicsans', 30)
-    label = font.render(f'Score: {score}', 1, WHITE)
+    font = pygame.font.Font(font_path, 24)
+    lscore = font.render(f'Score: {score}', 1, WHITE)
+    llevel = font.render(f'Level: {level}', 1, WHITE)
 
     if ON_RPI:
-        surface.blit(label, (10, 10))
+        screen.blit(lscore, lscore.get_rect(center=(480/2, 50)))
+        screen.blit(llevel, llevel.get_rect(center=(480/2, 75)))
     else:
-        surface.blit(label, (GRID_ORIGIN[0] + GRID_COLS * CELL_SIZE + 10, 10))
+        screen.blit(lscore, (GRID_ORIGIN[0] + GRID_COLS * CELL_SIZE + 10, 10))
+        screen.blit(llevel, (GRID_ORIGIN[0] + GRID_COLS * CELL_SIZE + 10, 35))
 
     # Mettre à jour l'affichage
     refresh()
@@ -641,8 +651,10 @@ def main():
     global fall_speed
 
     while True:  # Boucle principale pour permettre le redémarrage du jeu
-        # detect_joystick()
-        # music_selection_screen()  # Laisser l'utilisateur choisir la musique avant de démarrer
+        detect_joystick()
+        music_selection_screen()  # Laisser l'utilisateur choisir la musique avant de démarrer
+        # pygame.mixer.music.load("sounds/A-Type.mp3")
+        # pygame.mixer.music.play(-1)
 
         locked_positions = {}  # Initialiser locked_positions pour la nouvelle partie
         score = 0  # Initialiser le score à 0 pour chaque nouvelle partie
@@ -654,6 +666,7 @@ def main():
         clock = pygame.time.Clock()
         fall_time = 0
 
+        print("main: game_over ({})".format(game_over))
         while not game_over:  # Boucle de jeu tant que le jeu n'est pas terminé
             # Ici, vous pouvez utiliser locked_positions sans souci puisqu'elle a été initialisée
             # Logique de jeu, gestion des événements, affichage, etc.
@@ -801,7 +814,7 @@ def main():
                     print("Score:", score, "Level:", level)
                     fall_speed = adjust_fall_speed(level)
 
-                draw_window(win, grid, score, next_piece)
+                draw_window(win, grid, score, level, next_piece)
 
                 # Vérification de la condition de défaite
                 if check_lost(locked_positions) and not game_over:
@@ -822,7 +835,7 @@ def main():
                     highscore_screen(score)  # Appel à l'écran des scores
                     run = False  # Arrêter la boucle principale du jeu
 
-            pygame.quit()
+            # pygame.quit()
             # pygame.display.quit()
 
 win = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))

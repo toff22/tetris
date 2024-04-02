@@ -32,6 +32,7 @@ if ON_RPI:
 
 # Initialisation de Pygame
 pygame.mixer.init(devicename="Plantronics Blackwire 5220 Seri, USB Audio")
+# pygame.mixer.init(devicename="bcm2835 Headphones, bcm2835 Headphones")
 pygame.init()
 
 # variables globales
@@ -131,13 +132,13 @@ total_lines_cleared = 0
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 COLORS = {
-    'I': (255, 255, 255),  # Blanc pur pour la pièce I
-    'O': (255, 235, 205),  # Blanched Almond pour la pièce O
-    'T': (245, 222, 179),  # Wheat pour la pièce T
-    'S': (222, 184, 135),  # Burlywood pour la pièce S
-    'Z': (210, 180, 140),  # Tan pour la pièce Z
-    'J': (188, 143, 143),  # Rosy Brown pour la pièce J
-    'L': (255, 218, 185)   # Pêche pour la pièce L
+    'I': (255, 0, 0),  # Blanc pur pour la pièce I
+    'O': (0, 0, 255),  # Blanched Almond pour la pièce O
+    'T': (0, 255, 0),  # Wheat pour la pièce T
+    'S': (255, 0, 255),  # Burlywood pour la pièce S
+    'Z': (255, 255, 0),  # Tan pour la pièce Z
+    'J': (0, 255, 255),  # Rosy Brown pour la pièce J
+    'L': (255, 255, 255)   # Pêche pour la pièce L
 }
 
 def play_next_track(music_files):
@@ -510,10 +511,10 @@ def draw_window(surface, grid, score, level, next_piece):
                 # Draw on LED
                 # print("led")
                 if (j>=0 and i>=0):
-                    if j%2==1:
-                        pixels[j*GRID_ROWS+i] = grid[i][j]
+                    if j%2==0:
+                        pixels[(GRID_COLS-1-j)*GRID_ROWS+i] = grid[i][j]
                     else:
-                        pixels[j*GRID_ROWS+(GRID_ROWS-1-i)] = grid[i][j]
+                        pixels[(GRID_COLS-1-j)*GRID_ROWS+(GRID_ROWS-1-i)] = grid[i][j]
 
     # Dessiner la pièce suivante
     # draw_next_shape(surface, next_piece)
@@ -547,18 +548,18 @@ def calculate_score(num_lines, level):
 
 
 def adjust_fall_speed(level):
-    base_speed = 0.1  # Vitesse de base pour le niveau 0
-    speed_increase_per_level = 0.1  # Augmentation de la vitesse par niveau
+    base_speed = 0.2  # Vitesse de base pour le niveau 0
+    speed_increase_per_level = 0.2  # Augmentation de la vitesse par niveau
 
     # Calculer la nouvelle vitesse en fonction du niveau
-    fall_speed = max(base_speed - (level * speed_increase_per_level), 0.1)  # Vitesse minimale de 0.1
+    fall_speed = max(base_speed - (level * speed_increase_per_level), 0.2)  # Vitesse minimale de 0.2
     global fast_fall_speed  # Déclarer fast_fall_speed comme une variable globale pour la mettre à jour
     fast_fall_speed = adjust_fast_fall_speed(fall_speed)  # Ajuster la vitesse de chute rapide
     return fall_speed
 
 def adjust_fast_fall_speed(normal_fall_speed):
     # Faire la chute rapide 5 fois plus rapide que la chute normale
-    return normal_fall_speed * 0.1
+    return normal_fall_speed * 0.2
 
 fast_fall_speed = adjust_fast_fall_speed(adjust_fall_speed(0))
 

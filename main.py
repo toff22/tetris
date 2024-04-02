@@ -73,6 +73,7 @@ animation_images_J = 'images/animation/tetroj'  # Pour la pièce J
 animation_images_L = 'images/animation/tetrol'  # Pour la pièce L
 
 piece_animations = {
+    'Control': 'images/animation/control_sml',
     'I': 'images/animation/tetroi',
     'O': 'images/animation/tetroo',
     'T': 'images/animation/tetrot',
@@ -522,13 +523,13 @@ def draw_window(surface, grid, score, level, next_piece):
         draw_next_piece_animation(screen, next_piece.shape_type, 420, 0, pygame.time.get_ticks())
 
     # Afficher le score
-    font = pygame.font.Font(font_path, 24)
-    lscore = font.render(f'Score: {score}', 1, WHITE)
-    llevel = font.render(f'Level: {level}', 1, WHITE)
+    font = pygame.font.Font(font_path, 30)
+    lscore = font.render(f'{score:06d}', 1, (120, 122, 100))
+    llevel = font.render(f'{level+1:02d}', 1, (63, 65, 51))
 
     if ON_RPI:
-        screen.blit(lscore, lscore.get_rect(center=(480/2, 50)))
-        screen.blit(llevel, llevel.get_rect(center=(480/2, 75)))
+        screen.blit(lscore, lscore.get_rect(center=(480/2, 400)))
+        screen.blit(llevel, llevel.get_rect(center=(480/2, 80)))
     else:
         screen.blit(lscore, (GRID_ORIGIN[0] + GRID_COLS * CELL_SIZE + 10, 10))
         screen.blit(llevel, (GRID_ORIGIN[0] + GRID_COLS * CELL_SIZE + 10, 35))
@@ -634,6 +635,9 @@ def detect_joystick():
     # Wait for a joystick to become available
     joystick = None
     while joystick is None:
+        draw_next_piece_animation(screen, "Control", 0, 0, pygame.time.get_ticks())
+        refresh()
+
         pygame.event.pump()  # Process event queue
         for i in range(pygame.joystick.get_count()):
             try:
@@ -649,6 +653,7 @@ fall_speed = 0
 side_motion = 0
 def main():
     global fall_speed
+    draw_next_piece_animation(screen, "Control", 0, 0, pygame.time.get_ticks())
 
     while True:  # Boucle principale pour permettre le redémarrage du jeu
         detect_joystick()

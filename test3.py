@@ -15,12 +15,13 @@ devices = get_devices(False)
 for device in devices:
     print("Device: {}".format(device))
 
-pygame.mixer.init(devicename="Plantronics Blackwire 5220 Seri, USB Audio")
-#pygame.mixer.music.load("sounds/A-Type.ogg")
-#pygame.mixer.music.play()
+# pygame.mixer.init(devicename="bcm2835 Headphones, bcm2835 Headphones")
+# pygame.mixer.init(devicename="Plantronics Blackwire 5220 Seri, USB Audio")
+# #pygame.mixer.music.load("sounds/A-Type.ogg")
+# #pygame.mixer.music.play()
 
-rotate_sound = pygame.mixer.Sound("sounds/rotate.ogg")
+# rotate_sound = pygame.mixer.Sound("sounds/rotate.ogg")
 
-while True:
-    rotate_sound.play()
-    sleep(1)
+# while True:
+#     rotate_sound.play()
+#     sleep(1)

@@ -636,6 +636,11 @@ def detect_joystick():
     joystick = None
     while joystick is None:
         draw_next_piece_animation(screen, "Control", 0, 0, pygame.time.get_ticks())
+
+        font = pygame.font.Font(font_path, 30)
+        connect = font.render(f'Connect', 1, (120, 122, 100))
+        screen.blit(connect, connect.get_rect(center=(480/2, 380)))
+
         refresh()
 
         pygame.event.pump()  # Process event queue

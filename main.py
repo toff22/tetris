@@ -31,7 +31,7 @@ if ON_RPI:
     # os.environ["SDL_VIDEODRIVER"] = "fbcon"
 
 # Initialisation de Pygame
-pygame.mixer.init(devicename="Plantronics Blackwire 5220 Seri, USB Audio")
+pygame.mixer.init(devicename="KT USB Audio, USB Audio")
 # pygame.mixer.init(devicename="bcm2835 Headphones, bcm2835 Headphones")
 pygame.init()
 
@@ -548,18 +548,18 @@ def calculate_score(num_lines, level):
 
 
 def adjust_fall_speed(level):
-    base_speed = 0.2  # Vitesse de base pour le niveau 0
-    speed_increase_per_level = 0.2  # Augmentation de la vitesse par niveau
+    base_speed = 0.4  # Vitesse de base pour le niveau 0
+    speed_increase_per_level = 0.4  # Augmentation de la vitesse par niveau
 
     # Calculer la nouvelle vitesse en fonction du niveau
-    fall_speed = max(base_speed - (level * speed_increase_per_level), 0.2)  # Vitesse minimale de 0.2
+    fall_speed = max(base_speed - (level * speed_increase_per_level), 0.4)  # Vitesse minimale de 0.4
     global fast_fall_speed  # Déclarer fast_fall_speed comme une variable globale pour la mettre à jour
     fast_fall_speed = adjust_fast_fall_speed(fall_speed)  # Ajuster la vitesse de chute rapide
     return fall_speed
 
 def adjust_fast_fall_speed(normal_fall_speed):
     # Faire la chute rapide 5 fois plus rapide que la chute normale
-    return normal_fall_speed * 0.2
+    return normal_fall_speed * 0.1
 
 fast_fall_speed = adjust_fast_fall_speed(adjust_fall_speed(0))
 

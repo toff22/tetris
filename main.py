@@ -131,14 +131,15 @@ total_lines_cleared = 0
 # Couleurs
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
+
 COLORS = {
-    'I': (255, 0, 0),  # Blanc pur pour la pièce I
-    'O': (0, 0, 255),  # Blanched Almond pour la pièce O
-    'T': (0, 255, 0),  # Wheat pour la pièce T
-    'S': (255, 0, 255),  # Burlywood pour la pièce S
-    'Z': (255, 255, 0),  # Tan pour la pièce Z
-    'J': (0, 255, 255),  # Rosy Brown pour la pièce J
-    'L': (255, 255, 255)   # Pêche pour la pièce L
+    'I': (255, 224, 153),  # Orange très clair pour la pièce I, presque pastel
+    'O': (255, 186, 89),   # Jaune moyen saturé pour la pièce O, vif sans être trop éclatant
+    'T': (255, 87, 34),    # Orange vif pour la pièce T, saturé
+    'S': (255, 110, 0),    # Orange foncé pour la pièce S, plus intense
+    'Z': (255, 165, 30),    # Orange pour la pièce Z, pour éviter l'effet rose
+    'J': (255, 255, 255),  # Blanc pour la pièce J, pour intégrer le blanc dans le camaïeu
+    'L': (255, 190, 143)   # Orange pâle pour la pièce L, plus marqué que le précédent mais pas trop saturé
 }
 
 def play_next_track(music_files):

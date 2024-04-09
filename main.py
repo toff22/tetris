@@ -43,8 +43,10 @@ last_update = pygame.time.get_ticks()
 
 # Définit le mode vidéo en créant une fenêtre. Ajustez la taille selon vos besoins.
 def refresh():
+    rotated_screen = pygame.transform.rotate(screen, 90) #tourner l'ecran a 90
+
     fd = open("/dev/fb0","wb")
-    fd.write(screen.get_buffer())
+    fd.write(rotated_screen.get_buffer())
     fd.close()
     pygame.display.flip()
 

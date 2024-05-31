@@ -457,9 +457,9 @@ def update_score_and_level(score, lines_cleared, level):
 def clear_rows(grid, locked):
     inc = 0  # Nombre de lignes supprimées
     indices_to_remove = []
-        if inc > 0:
-    global total_lines_cleared
-    total_lines_cleared += inc
+    if inc > 0:
+        global total_lines_cleared
+        total_lines_cleared += inc
 
     # Identifier les lignes complètes à supprimer
     for i in range(len(grid) - 1, -1, -1):

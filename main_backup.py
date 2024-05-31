@@ -38,10 +38,6 @@ pygame.init()
 # variables globales
 frame_index = 0
 last_update = pygame.time.get_ticks()
-initial_fall_speed = 1.0
-speed_increment_per_level = 0.1
-fast_fall_speed = 0.05
-total_lines_cleared = 0
 
 
 
@@ -457,9 +453,6 @@ def update_score_and_level(score, lines_cleared, level):
 def clear_rows(grid, locked):
     inc = 0  # Nombre de lignes supprimées
     indices_to_remove = []
-        if inc > 0:
-    global total_lines_cleared
-    total_lines_cleared += inc
 
     # Identifier les lignes complètes à supprimer
     for i in range(len(grid) - 1, -1, -1):
@@ -537,7 +530,6 @@ def draw_window(surface, grid, score, level, next_piece):
     font = pygame.font.Font(font_path, 30)
     lscore = font.render(f'{score:06d}', 1, (120, 122, 100))
     llevel = font.render(f'{level+1:02d}', 1, (63, 65, 51))
-    llines = font.render(f'Lines: {total_lines_cleared}', 1, (63, 65, 51))
 
     if ON_RPI:
         screen.blit(lscore, lscore.get_rect(center=(480/2, 400)))
@@ -545,7 +537,6 @@ def draw_window(surface, grid, score, level, next_piece):
     else:
         screen.blit(lscore, (GRID_ORIGIN[0] + GRID_COLS * CELL_SIZE + 10, 10))
         screen.blit(llevel, (GRID_ORIGIN[0] + GRID_COLS * CELL_SIZE + 10, 35))
-        screen.blit(llines, (GRID_ORIGIN[0] + GRID_COLS * CELL_SIZE + 10, 60))
 
     # Mettre à jour l'affichage
     refresh()
@@ -561,7 +552,7 @@ def calculate_score(num_lines, level):
 
 def adjust_fall_speed(level):
     base_speed = 0.4  # Vitesse de base pour le niveau 0
-    speed_increase_per_level = 0.2  # Augmentation de la vitesse par niveau
+    speed_increase_per_level = 0.4  # Augmentation de la vitesse par niveau
 
     # Calculer la nouvelle vitesse en fonction du niveau
     fall_speed = max(base_speed - (level * speed_increase_per_level), 0.4)  # Vitesse minimale de 0.4
